@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@14 . --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --yes)",
+      "Bash(npx create-next-app@14 . --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --yes --name week-planner)",
+      "Read(//d/PROJECTS/**)",
+      "Bash(npx create-next-app@14 week-planner-temp --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --yes)",
+      "Bash(cp -r week-planner-temp/. \"Week-Planner/\")",
+      "Bash(rm -rf week-planner-temp)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn-ui@latest init --yes)",
+      "Bash(npx shadcn@latest init --yes)",
+      "Bash(npx shadcn@latest init --yes --defaults)"
+    ]
+  }
+}
