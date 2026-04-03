@@ -34,3 +34,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI/IDE tool configs
+.claude/
+.cursor/
+.gemini/
+.opencode/
+.windsurf/
+.agent/
+.codex/
+
+# build artifacts
+build_output.txt
