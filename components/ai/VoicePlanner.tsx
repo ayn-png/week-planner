@@ -11,12 +11,12 @@ import type { DayOfWeek, PlannerBlock } from '@/types/planner';
 import { findAvailableSlot } from '@/lib/services/schedulingService';
 import { v4 as uuidv4 } from 'uuid';
 
-// Resolve SpeechRecognition across browsers
-type SpeechRecognitionCtor = new () => SpeechRecognition;
-const SpeechRecognitionAPI =
+// Resolve SpeechRecognition across browsers (non-standard API, cast via any)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const SpeechRecognitionAPI: (new () => any) | null =
   typeof window !== 'undefined'
-    ? (window as Window & { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor }).SpeechRecognition ||
-      (window as Window & { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor }).webkitSpeechRecognition
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition ?? null)
     : null;
 
 function minutesToLabel(m: number) {
