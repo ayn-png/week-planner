@@ -40,7 +40,7 @@ export function CalendarGrid({
   const visibleIndices = visibleDayIndices ?? weekDays.map((_, i) => i);
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden">
       {/* Day header row */}
       <motion.div
         className="flex flex-shrink-0 border-b border-border bg-card/80 backdrop-blur-sm"
