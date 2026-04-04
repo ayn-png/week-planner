@@ -12,10 +12,11 @@ import { findAvailableSlot } from '@/lib/services/schedulingService';
 import { v4 as uuidv4 } from 'uuid';
 
 // Resolve SpeechRecognition across browsers
+type SpeechRecognitionCtor = new () => SpeechRecognitionAPI;
 const SpeechRecognitionAPI =
   typeof window !== 'undefined'
-    ? (window as Window & { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition ||
-      (window as Window & { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition
+    ? (window as Window & { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor }).SpeechRecognition ||
+      (window as Window & { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor }).webkitSpeechRecognition
     : null;
 
 function minutesToLabel(m: number) {
