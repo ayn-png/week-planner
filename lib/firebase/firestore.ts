@@ -20,8 +20,18 @@ export function subscribeToWeekPlan(
 ): Unsubscribe {
   const ref = doc(db, 'users', userId, 'weeklyPlans', weekId);
   return onSnapshot(ref, (snap) => {
-    if (snap.exists()) {
-      callback(snap.data() as WeeklyPlan);
+    if (!snap.exists()) {
+      callback(null);
+      return;
+    }
+    const data = snap.data();
+    // Safe cast: verify required fields are present before asserting type
+    if (
+      data &&
+      typeof data.weekId === 'string' &&
+      Array.isArray(data.blocks)
+    ) {
+      callback(data as WeeklyPlan);
     } else {
       callback(null);
     }
@@ -40,10 +50,16 @@ export function subscribeToCategories(
   callback: (categories: Category[]) => void
 ): Unsubscribe {
   const ref = collection(db, 'users', userId, 'categories');
-  return onSnapshot(ref, (snap) => {
-    const categories = snap.docs.map((d) => d.data() as Category);
-    callback(categories);
-  });
+  return onSnapshot(
+    ref,
+    (snap) => {
+      const categories = snap.docs.map((d) => d.data() as Category);
+      callback(categories);
+    },
+    (err) => {
+      throw new Error(`Failed to fetch categories for user ${userId}: ${err.message}`);
+    }
+  );
 }
 
 export async function saveCategory(userId: string, category: Category): Promise<void> {

@@ -35,6 +35,7 @@ import { WeeklyDashboard } from '@/components/weekly/WeeklyDashboard';
 import type { DragData, PlannerBlock, DayOfWeek } from '@/types/planner';
 import { DAY_LABELS } from '@/types/planner';
 import { snapToSlot } from '@/lib/dateHelpers';
+import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function PlannerPage() {
@@ -69,13 +70,6 @@ export default function PlannerPage() {
   const [duplicateSuccess, setDuplicateSuccess] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [mobileDayStart, setMobileDayStart] = useState<number>(() => {
-    const today = new Date().getDay();
-    const mondayOffset = today === 0 ? 6 : today - 1;
-    return Math.max(0, Math.min(4, mondayOffset));
-  });
-
   const dayColumnRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null, null, null, null]);
   const resizeStartEndTimeRef = useRef<number>(0);
   const touchStartXRef = useRef<number | null>(null);
@@ -106,7 +100,8 @@ export default function PlannerPage() {
     // ── Resize ──
     if (dragData.type === 'RESIZE' && dragData.block) {
       const block = dragData.block;
-      const newEndTime = resizeStartEndTimeRef.current + Math.round(delta.y / snapMinutes) * snapMinutes;
+      const snappedMinutes = Math.round(delta.y / snapMinutes) * snapMinutes;
+      const newEndTime = resizeStartEndTimeRef.current + snappedMinutes;
       const clamped = Math.max(block.startTime + snapMinutes, Math.min(1440, newEndTime));
       const snapped = snapToSlot(clamped, snapMinutes);
       resizeBlock(block.id, snapped);
@@ -198,7 +193,7 @@ export default function PlannerPage() {
     if (e.key === 'v') { e.preventDefault(); handlePaste(); }
     if (e.key === 'd') { e.preventDefault(); handleDuplicateWeek(); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clipboard, handleUndo, handleRedo]);
+  }, [clipboard, handleUndo, handleRedo, handleDuplicateWeek]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -207,8 +202,8 @@ export default function PlannerPage() {
 
   // ─── Auto-Schedule Focus Block ─────────────────────────────────────────────
   const handleScheduleFocus = useCallback(() => {
-    const todayIndex = new Date().getDay();
-    const dayLabel = DAY_LABELS[todayIndex === 0 ? 6 : todayIndex - 1] ?? 'Mon';
+    const todayIndex = (new Date().getDay() + 6) % 7;
+    const dayLabel = DAY_LABELS[todayIndex] ?? 'Mon';
     
     // Find gaps in today's blocks
     const todayBlocks = blocks
@@ -232,7 +227,7 @@ export default function PlannerPage() {
     if (foundSlot !== null && state.categories.length > 0) {
       const workCat = state.categories.find(c => c.id === 'work' || c.label.toLowerCase() === 'work') || state.categories[0];
       const newBlock: PlannerBlock = {
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         title: 'Deep Work Session',
         category: workCat.id,
         color: workCat.color,
@@ -340,21 +335,9 @@ export default function PlannerPage() {
               {/* Weekly Dashboard — scroll down to see it */}
               <WeeklyDashboard weekId={weekId} weekDays={weekDays} />
 
-              {/* Mobile day nav overlay (bottom) */}
+              {/* Mobile day nav hint */}
               <div className="flex md:hidden items-center justify-center gap-3 py-2 border-t border-border/40 bg-background/80 backdrop-blur-sm">
-                <button
-                  className="text-xs text-muted-foreground px-3 py-1 rounded-lg active:bg-muted"
-                  onClick={() => setMobileDayStart((d) => Math.max(0, d - 1))}
-                >
-                  ← Earlier
-                </button>
                 <span className="text-xs text-muted-foreground">Swipe to navigate weeks</span>
-                <button
-                  className="text-xs text-muted-foreground px-3 py-1 rounded-lg active:bg-muted"
-                  onClick={() => setMobileDayStart((d) => Math.min(4, d + 1))}
-                >
-                  Later →
-                </button>
               </div>
 
               {/* Error / feedback toasts */}
@@ -390,6 +373,7 @@ export default function PlannerPage() {
           block={selectedBlock}
           categories={state.categories}
           weekDays={weekDays}
+          blocks={blocks}
           onSave={(block) => {
             const result = updateBlock(block);
             return result;

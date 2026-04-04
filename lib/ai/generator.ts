@@ -32,16 +32,34 @@ export function parseAIResponse(
     // Validate day
     const dayLower = (item.day || '').trim().slice(0, 3);
     const dayCapitalized = dayLower.charAt(0).toUpperCase() + dayLower.slice(1).toLowerCase();
-    if (!DAY_LABELS.includes(dayCapitalized as DayOfWeek)) continue;
+    if (!DAY_LABELS.includes(dayCapitalized as DayOfWeek)) {
+      console.warn(`parseAIResponse: skipping block with invalid day value "${item.day}"`);
+      continue;
+    }
 
     // Parse times
     const startTime = timeToMinutes(item.startTime);
     const endTime = timeToMinutes(item.endTime);
     if (startTime < 0 || endTime <= startTime) continue;
 
+    // Skip blocks that end past midnight (1440 minutes)
+    if (endTime > 1440) continue;
+
     // Match category (fuzzy)
     const cat = matchCategory(item.category || '', categories);
     if (!cat) continue;
+
+    // Warn when falling back to first category
+    const isExact = categories.some((c) => c.label.toLowerCase() === (item.category || '').toLowerCase().trim());
+    const isPartial = !isExact && categories.some((c) => {
+      const lower = (item.category || '').toLowerCase().trim();
+      return c.label.toLowerCase().includes(lower) || lower.includes(c.label.toLowerCase());
+    });
+    if (!isExact && !isPartial) {
+      console.warn(
+        `parseAIResponse: no category match for block "${item.title}" (category: "${item.category}") — falling back to "${cat.label}"`
+      );
+    }
 
     blocks.push({
       id: uuidv4(),

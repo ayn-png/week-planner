@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Loader2, Sparkles, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { parseAIResponse } from '@/lib/ai/generator';
 import { minutesToTime } from '@/lib/dateHelpers';
@@ -148,13 +149,17 @@ export function AIWeekGenerator({
             <Label className="text-xs text-muted-foreground">Try an example:</Label>
             <div className="flex flex-wrap gap-1.5">
               {EXAMPLE_PROMPTS.map((ex) => (
-                <button
-                  key={ex}
-                  onClick={() => setPrompt(ex)}
-                  className="rounded-full border border-border px-2 py-0.5 text-xs hover:bg-muted transition-colors text-left"
-                >
-                  {ex.length > 40 ? ex.slice(0, 40) + '…' : ex}
-                </button>
+                <Tooltip key={ex}>
+                  <TooltipTrigger>
+                    <button
+                      onClick={() => setPrompt(ex)}
+                      className="rounded-full border border-border px-2 py-0.5 text-xs hover:bg-muted transition-colors text-left"
+                    >
+                      {ex.length > 40 ? ex.slice(0, 40) + '…' : ex}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>{ex}</TooltipContent>
+                </Tooltip>
               ))}
             </div>
           </div>

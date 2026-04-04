@@ -1,10 +1,33 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Lightbulb } from 'lucide-react';
 import type { PlannerBlock, Category } from '@/types/planner';
 import { DAY_LABELS } from '@/types/planner';
+
+const LS_KEY = 'wp-dismissed-suggestions';
+
+function loadDismissed(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return new Set<string>(parsed);
+  } catch {
+    // ignore malformed data
+  }
+  return new Set();
+}
+
+function saveDismissed(dismissed: Set<string>): void {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(Array.from(dismissed)));
+  } catch {
+    // ignore write errors (e.g. private browsing quota)
+  }
+}
 
 interface SmartSuggestionsProps {
   blocks: PlannerBlock[];
@@ -81,7 +104,13 @@ function computeSuggestions(blocks: PlannerBlock[], categories: Category[]): str
 }
 
 export function SmartSuggestions({ blocks, categories, onScheduleFocus }: SmartSuggestionsProps) {
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  // Load dismissed IDs from localStorage on mount
+  const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissed());
+
+  // Keep localStorage in sync whenever dismissed changes
+  useEffect(() => {
+    saveDismissed(dismissed);
+  }, [dismissed]);
 
   const suggestions = useMemo(
     () => computeSuggestions(blocks, categories),
@@ -91,6 +120,14 @@ export function SmartSuggestions({ blocks, categories, onScheduleFocus }: SmartS
   const visible = suggestions.filter((s) => !dismissed.has(s));
 
   if (visible.length === 0) return null;
+
+  function handleDismiss(tip: string) {
+    setDismissed((prev) => {
+      const next = new Set(prev);
+      next.add(tip);
+      return next;
+    });
+  }
 
   return (
     <motion.div
@@ -122,7 +159,8 @@ export function SmartSuggestions({ blocks, categories, onScheduleFocus }: SmartS
             <motion.button
               whileHover={{ scale: 1.15 }}
               whileTap={{ scale: 0.85 }}
-              onClick={() => setDismissed((prev) => { const s = new Set(prev); s.add(tip); return s; })}
+              onClick={() => handleDismiss(tip)}
+              aria-label="Dismiss suggestion"
               className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors mt-0.5"
             >
               <X className="h-3 w-3" />
@@ -133,8 +171,8 @@ export function SmartSuggestions({ blocks, categories, onScheduleFocus }: SmartS
 
       {onScheduleFocus && visible.length > 0 && (
         <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{ delay: 0.3 }} className="pt-1 flex justify-end">
-          <button 
-            onClick={onScheduleFocus} 
+          <button
+            onClick={onScheduleFocus}
             className="text-[11px] bg-primary/10 text-primary px-3 py-1.5 rounded-md hover:bg-primary/20 transition-colors flex items-center gap-1.5 font-medium border border-primary/20"
           >
             <Lightbulb className="h-3 w-3" /> Auto-Schedule Focus Block

@@ -19,6 +19,8 @@ export function ResizeHandle({ blockId, block }: ResizeHandleProps) {
       ref={setNodeRef}
       {...listeners}
       {...attributes}
+      role="separator"
+      aria-label="Resize block"
       className="absolute bottom-0 inset-x-0 h-3 cursor-ns-resize flex items-center justify-center group/resize z-30"
       style={{ touchAction: 'none' }}
       onClick={(e) => e.stopPropagation()}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
   Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
@@ -74,7 +74,18 @@ function minutesToHours(minutes: number): string {
 
 export function AnalyticsDashboard({ open, onClose, blocks, categories, weekRangeLabel }: AnalyticsDashboardProps) {
   const { activeMinutes, idleMinutes } = usePlannerStore();
+  const [loading, setLoading] = useState(false);
   const stats = useMemo(() => computeStats(blocks, categories), [blocks, categories]);
+
+  useEffect(() => {
+    if (open) {
+      setLoading(true);
+      // Stats are computed synchronously from props; use a microtask to allow
+      // the skeleton to render for one frame before showing content.
+      const id = setTimeout(() => setLoading(false), 0);
+      return () => clearTimeout(id);
+    }
+  }, [open, blocks, categories]);
 
   // Per-day bar data
   const dailyData = DAY_LABELS.map((day) => {
@@ -119,7 +130,14 @@ export function AnalyticsDashboard({ open, onClose, blocks, categories, weekRang
           </DialogTitle>
         </DialogHeader>
 
-        {blocks.length === 0 ? (
+        {loading ? (
+          <div className="space-y-3 p-4">
+            <div className="h-4 bg-muted animate-pulse rounded" />
+            <div className="h-4 bg-muted animate-pulse rounded" />
+            <div className="h-4 bg-muted animate-pulse rounded" />
+            <div className="h-4 bg-muted animate-pulse rounded" />
+          </div>
+        ) : blocks.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground">
             No blocks this week. Add some blocks to see analytics.
           </div>

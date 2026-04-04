@@ -10,6 +10,8 @@ interface PlannerState {
   categories: Category[];
   weekId: string;
   isSaving: boolean;
+  /** True from when weekId changes until new block data arrives, preventing a flash of empty content */
+  weekLoading: boolean;
 }
 
 const initialState: PlannerState = {
@@ -17,6 +19,7 @@ const initialState: PlannerState = {
   categories: [],
   weekId: '',
   isSaving: false,
+  weekLoading: false,
 };
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
@@ -31,12 +34,14 @@ export type PlannerAction =
   | { type: 'ADD_CATEGORY'; category: Category }
   | { type: 'DELETE_CATEGORY'; id: string }
   | { type: 'SET_WEEK'; weekId: string }
-  | { type: 'SET_SAVING'; saving: boolean };
+  | { type: 'SET_SAVING'; saving: boolean }
+  | { type: 'SET_WEEK_LOADING'; loading: boolean };
 
 function plannerReducer(state: PlannerState, action: PlannerAction): PlannerState {
   switch (action.type) {
     case 'SET_BLOCKS':
-      return { ...state, blocks: action.blocks };
+      // New data has arrived — clear the week-transition loading flag and apply blocks
+      return { ...state, blocks: action.blocks, weekLoading: false };
     case 'ADD_BLOCK':
       return { ...state, blocks: [...state.blocks, action.block] };
     case 'ADD_BLOCKS':

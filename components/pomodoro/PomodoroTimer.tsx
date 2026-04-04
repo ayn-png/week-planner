@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, RotateCcw, X, Minus, GripHorizontal, Music, Volume2, VolumeX, SkipBack, SkipForward } from 'lucide-react';
+import {
+  Play, Pause, RotateCcw, X, Minus, GripHorizontal,
+  Music, Volume2, VolumeX, SkipBack, SkipForward, ChevronDown, ChevronUp,
+} from 'lucide-react';
 import { useDraggablePosition } from '@/hooks/useDraggablePosition';
 import { FOCUS_TRACKS } from '@/lib/music/tracks';
 import { usePlannerStore } from '@/store/plannerStore';
@@ -10,18 +13,85 @@ import { Flame } from 'lucide-react';
 
 type Mode = 'focus' | 'short' | 'long';
 
-const MODES: Record<Mode, { label: string; minutes: number; color: string; ring: string }> = {
-  focus: { label: 'Focus',       minutes: 25, color: '#ef4444', ring: '#ef444433' },
-  short: { label: 'Short Break', minutes: 5,  color: '#22c55e', ring: '#22c55e33' },
-  long:  { label: 'Long Break',  minutes: 15, color: '#3b82f6', ring: '#3b82f633' },
+// ── Settings helpers ────────────────────────────────────────────────────────
+
+const SETTINGS_KEY = 'wp-pomodoro-settings';
+
+interface PomodoroSettings {
+  focusMinutes: number;
+  shortMinutes: number;
+  longMinutes: number;
+}
+
+const DEFAULT_SETTINGS: PomodoroSettings = {
+  focusMinutes: 25,
+  shortMinutes: 5,
+  longMinutes: 15,
+};
+
+function loadSettings(): PomodoroSettings {
+  if (typeof window === 'undefined') return DEFAULT_SETTINGS;
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return DEFAULT_SETTINGS;
+    const parsed = JSON.parse(raw) as Partial<PomodoroSettings>;
+    return {
+      focusMinutes: Number(parsed.focusMinutes) || DEFAULT_SETTINGS.focusMinutes,
+      shortMinutes: Number(parsed.shortMinutes) || DEFAULT_SETTINGS.shortMinutes,
+      longMinutes: Number(parsed.longMinutes) || DEFAULT_SETTINGS.longMinutes,
+    };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+function saveSettings(s: PomodoroSettings) {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  } catch { /* ignore */ }
+}
+
+// ── Visual constants ────────────────────────────────────────────────────────
+
+const MODE_COLORS: Record<Mode, { label: string; color: string; ring: string }> = {
+  focus: { label: 'Focus',       color: '#ef4444', ring: '#ef444433' },
+  short: { label: 'Short Break', color: '#22c55e', ring: '#22c55e33' },
+  long:  { label: 'Long Break',  color: '#3b82f6', ring: '#3b82f633' },
 };
 
 const RADIUS = 44;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
+// ── Component ───────────────────────────────────────────────────────────────
+
 export function PomodoroTimer({ onClose }: { onClose: () => void }) {
+  // ── Settings state (user-configurable durations) ────────────────────────
+  const [settings, setSettings] = useState<PomodoroSettings>(() => loadSettings());
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Persist settings to localStorage on every change
+  useEffect(() => {
+    saveSettings(settings);
+  }, [settings]);
+
+  function updateSetting(key: keyof PomodoroSettings, raw: string) {
+    const val = Math.max(1, Math.min(120, parseInt(raw, 10) || 1));
+    setSettings((prev) => {
+      const next = { ...prev, [key]: val };
+      return next;
+    });
+  }
+
+  // Derive minutes for each mode from settings
+  function modeMinutes(m: Mode): number {
+    if (m === 'focus') return settings.focusMinutes;
+    if (m === 'short') return settings.shortMinutes;
+    return settings.longMinutes;
+  }
+
+  // ── Timer state ─────────────────────────────────────────────────────────
   const [mode, setMode] = useState<Mode>('focus');
-  const [secondsLeft, setSecondsLeft] = useState(MODES.focus.minutes * 60);
+  const [secondsLeft, setSecondsLeft] = useState(settings.focusMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [sessionCount, setSessionCount] = useState(0);
   const [minimized, setMinimized] = useState(false);
@@ -29,7 +99,17 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const { flowSessions, incrementFlowSessions } = usePlannerStore();
 
-  // ── Music state ────────────────────────────────────────────────────────────
+  // ── Refs for stale-closure-safe timer callbacks ──────────────────────────
+  const modeRef = useRef<Mode>(mode);
+  const isRunningRef = useRef<boolean>(isRunning);
+  const sessionCountRef = useRef<number>(sessionCount);
+  const musicEnabledRef = useRef<boolean>(true);
+
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+  useEffect(() => { isRunningRef.current = isRunning; }, [isRunning]);
+  useEffect(() => { sessionCountRef.current = sessionCount; }, [sessionCount]);
+
+  // ── Music state ─────────────────────────────────────────────────────────
   const [trackIndex, setTrackIndex] = useState(0);
   const [volume, setVolume] = useState(0.4);
   const [isMuted, setIsMuted] = useState(false);
@@ -37,22 +117,25 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  useEffect(() => { musicEnabledRef.current = musicEnabled; }, [musicEnabled]);
+
   const { position, dragHandleProps } = useDraggablePosition({
     storageKey: 'pomodoro-position',
-    defaultPosition: { x: Math.max(0, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 280), y: 80 },
+    defaultPosition: {
+      x: Math.max(0, (typeof window !== 'undefined' ? window.innerWidth : 800) - 320),
+      y: 80,
+    },
   });
 
-  const totalSeconds = MODES[mode].minutes * 60;
+  const totalSeconds = modeMinutes(mode) * 60;
   const progress = secondsLeft / totalSeconds;
   const dashOffset = CIRCUMFERENCE * (1 - progress);
   const mm = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
   const ss = String(secondsLeft % 60).padStart(2, '0');
-  const cfg = MODES[mode];
+  const cfg = MODE_COLORS[mode];
   const currentTrack = FOCUS_TRACKS[trackIndex];
 
-  // ── Audio setup ────────────────────────────────────────────────────────────
-
-  // Keep audio volume in sync
+  // ── Audio volume sync ────────────────────────────────────────────────────
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = isMuted ? 0 : volume;
@@ -76,9 +159,9 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
   function handleTrackEnd() {
     const next = (trackIndex + 1) % FOCUS_TRACKS.length;
     setTrackIndex(next);
-    // Audio src will update and we need to play it
     setTimeout(() => {
-      if (audioRef.current && isRunning && mode === 'focus' && musicEnabled) {
+      // Read current values via refs to avoid stale closure
+      if (audioRef.current && isRunningRef.current && modeRef.current === 'focus' && musicEnabledRef.current) {
         audioRef.current.play().catch(() => {});
       }
     }, 50);
@@ -88,7 +171,7 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
     const prev = (trackIndex - 1 + FOCUS_TRACKS.length) % FOCUS_TRACKS.length;
     setTrackIndex(prev);
     setTimeout(() => {
-      if (audioRef.current && isRunning && mode === 'focus' && musicEnabled) {
+      if (audioRef.current && isRunningRef.current && modeRef.current === 'focus' && musicEnabledRef.current) {
         audioRef.current.play().catch(() => {});
       }
     }, 50);
@@ -98,7 +181,7 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
     const next = (trackIndex + 1) % FOCUS_TRACKS.length;
     setTrackIndex(next);
     setTimeout(() => {
-      if (audioRef.current && isRunning && mode === 'focus' && musicEnabled) {
+      if (audioRef.current && isRunningRef.current && modeRef.current === 'focus' && musicEnabledRef.current) {
         audioRef.current.play().catch(() => {});
       }
     }, 50);
@@ -116,35 +199,47 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
     }
   }
 
-  // ── Timer logic ────────────────────────────────────────────────────────────
+  // ── Timer logic ──────────────────────────────────────────────────────────
 
-  const switchMode = useCallback((newMode: Mode) => {
+  const switchMode = useCallback((newMode: Mode, overrideSettings?: PomodoroSettings) => {
+    const mins = overrideSettings ? (
+      newMode === 'focus' ? overrideSettings.focusMinutes
+      : newMode === 'short' ? overrideSettings.shortMinutes
+      : overrideSettings.longMinutes
+    ) : modeMinutes(newMode);
     setMode(newMode);
-    setSecondsLeft(MODES[newMode].minutes * 60);
+    setSecondsLeft(mins * 60);
     setIsRunning(false);
     if (intervalRef.current) clearInterval(intervalRef.current);
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings]);
 
   const completeSession = useCallback(() => {
     setIsRunning(false);
     if (intervalRef.current) clearInterval(intervalRef.current);
 
+    // Read current mode and session count via refs — no stale closure
+    const currentMode = modeRef.current;
+    const currentSessionCount = sessionCountRef.current;
+
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       new Notification('Week Planner', {
-        body: mode === 'focus' ? '🎉 Focus session done! Time for a break.' : '💪 Break over — back to focus!',
+        body: currentMode === 'focus'
+          ? '🎉 Focus session done! Time for a break.'
+          : '💪 Break over — back to focus!',
         icon: '/icons/icon-192.png',
       });
     }
 
-    if (mode === 'focus') {
-      const newCount = sessionCount + 1;
+    if (currentMode === 'focus') {
+      const newCount = currentSessionCount + 1;
       setSessionCount(newCount);
       incrementFlowSessions();
       switchMode(newCount % 4 === 0 ? 'long' : 'short');
     } else {
       switchMode('focus');
     }
-  }, [mode, sessionCount, switchMode, incrementFlowSessions]);
+  }, [switchMode, incrementFlowSessions]);
 
   useEffect(() => {
     if (isRunning) {
@@ -157,6 +252,15 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isRunning, completeSession]);
+
+  // When settings change, reset the current mode's timer to the new duration
+  // only if the timer is not running
+  useEffect(() => {
+    if (!isRunning) {
+      setSecondsLeft(modeMinutes(mode) * 60);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings]);
 
   function requestNotificationPermission() {
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
@@ -172,8 +276,17 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
   function handleReset() {
     setIsRunning(false);
     if (intervalRef.current) clearInterval(intervalRef.current);
-    setSecondsLeft(MODES[mode].minutes * 60);
+    setSecondsLeft(modeMinutes(mode) * 60);
   }
+
+  // ── Session dots — always 4 dots, fill based on sessionCount % 4
+  //    Special case: if sessionCount > 0 and sessionCount % 4 === 0, all 4 are filled
+  //    to visually confirm a full set is complete before they reset.
+  const filledDots = sessionCount === 0
+    ? 0
+    : sessionCount % 4 === 0
+      ? 4
+      : sessionCount % 4;
 
   return (
     <>
@@ -217,18 +330,21 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
                 onClick={() => setShowMusic((m) => !m)}
                 className={`p-1 rounded hover:bg-muted transition-colors ${showMusic ? 'text-primary' : 'text-muted-foreground'}`}
                 title="Toggle music player"
+                aria-label="Toggle music player"
               >
                 <Music className="h-3 w-3" />
               </button>
               <button
                 onClick={() => setMinimized((m) => !m)}
                 className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground"
+                aria-label={minimized ? 'Expand timer' : 'Minimize timer'}
               >
                 <Minus className="h-3 w-3" />
               </button>
               <button
                 onClick={onClose}
                 className="p-1 rounded hover:bg-destructive/20 hover:text-destructive transition-colors text-muted-foreground"
+                aria-label="Close Pomodoro timer"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -253,6 +369,7 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
                   onClick={handlePlayPause}
                   className="p-1.5 rounded-full transition-colors"
                   style={{ backgroundColor: cfg.ring }}
+                  aria-label={isRunning ? 'Pause timer' : 'Start timer'}
                 >
                   {isRunning
                     ? <Pause className="h-3 w-3" style={{ color: cfg.color }} />
@@ -271,18 +388,18 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
               >
                 {/* Mode tabs */}
                 <div className="flex gap-1 w-full">
-                  {(Object.keys(MODES) as Mode[]).map((m) => (
+                  {(Object.keys(MODE_COLORS) as Mode[]).map((m) => (
                     <button
                       key={m}
                       onClick={() => switchMode(m)}
                       className="flex-1 rounded-md py-1 text-[10px] font-medium transition-all"
                       style={{
-                        backgroundColor: mode === m ? MODES[m].ring : 'transparent',
-                        color: mode === m ? MODES[m].color : 'hsl(var(--muted-foreground))',
-                        border: `1px solid ${mode === m ? MODES[m].color + '44' : 'transparent'}`,
+                        backgroundColor: mode === m ? MODE_COLORS[m].ring : 'transparent',
+                        color: mode === m ? MODE_COLORS[m].color : 'hsl(var(--muted-foreground))',
+                        border: `1px solid ${mode === m ? MODE_COLORS[m].color + '44' : 'transparent'}`,
                       }}
                     >
-                      {MODES[m].label}
+                      {MODE_COLORS[m].label}
                     </button>
                   ))}
                 </div>
@@ -317,6 +434,7 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     className="p-2 rounded-full bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label="Reset timer"
                   >
                     <RotateCcw className="h-4 w-4" />
                   </motion.button>
@@ -327,6 +445,7 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
                     whileTap={{ scale: 0.92 }}
                     className="p-3.5 rounded-full shadow-lg transition-colors"
                     style={{ backgroundColor: cfg.color }}
+                    aria-label={isRunning ? 'Pause timer' : 'Start timer'}
                   >
                     {isRunning
                       ? <Pause className="h-5 w-5 text-white" />
@@ -337,25 +456,79 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
                   <div className="w-8 h-8" />
                 </div>
 
-                {/* Session dots */}
+                {/* Session dots — always 4 dots */}
                 <div className="flex items-center gap-1.5">
                   {Array.from({ length: 4 }).map((_, i) => (
                     <motion.div
                       key={i}
                       initial={false}
-                      animate={{ scale: i < (sessionCount % 4 || (sessionCount > 0 && sessionCount % 4 === 0 ? 4 : 0)) ? 1 : 0.6 }}
+                      animate={{ scale: i < filledDots ? 1 : 0.6 }}
                       transition={{ type: 'spring', stiffness: 500 }}
                       className="rounded-full"
                       style={{
-                        width: 8, height: 8,
-                        backgroundColor: i < (sessionCount % 4 || (sessionCount > 0 && sessionCount % 4 === 0 ? 4 : 0))
-                          ? cfg.color : 'hsl(var(--muted))',
+                        width: 8,
+                        height: 8,
+                        backgroundColor: i < filledDots ? cfg.color : 'hsl(var(--muted))',
                       }}
                     />
                   ))}
                   {sessionCount > 0 && (
                     <span className="text-[10px] text-muted-foreground ml-1">{sessionCount} done</span>
                   )}
+                </div>
+
+                {/* ── Settings panel ─────────────────────────────────────── */}
+                <div className="w-full border-t border-border/40 pt-2">
+                  <button
+                    onClick={() => setShowSettings((s) => !s)}
+                    className="w-full flex items-center justify-between text-[11px] text-muted-foreground hover:text-foreground transition-colors py-0.5"
+                    aria-expanded={showSettings}
+                    aria-label="Toggle duration settings"
+                  >
+                    <span className="font-medium">Duration settings</span>
+                    {showSettings
+                      ? <ChevronUp className="h-3 w-3" />
+                      : <ChevronDown className="h-3 w-3" />
+                    }
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {showSettings && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.18 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-2 space-y-2">
+                          {(
+                            [
+                              { key: 'focusMinutes' as const, label: 'Focus' },
+                              { key: 'shortMinutes' as const, label: 'Short break' },
+                              { key: 'longMinutes' as const, label: 'Long break' },
+                            ] as const
+                          ).map(({ key, label }) => (
+                            <div key={key} className="flex items-center justify-between gap-2">
+                              <label className="text-[11px] text-muted-foreground flex-1">{label}</label>
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={120}
+                                  value={settings[key]}
+                                  onChange={(e) => updateSetting(key, e.target.value)}
+                                  className="w-12 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] text-center focus:outline-none focus:ring-1 focus:ring-ring"
+                                  aria-label={`${label} duration in minutes`}
+                                />
+                                <span className="text-[10px] text-muted-foreground">min</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* ── Music Player ──────────────────────────────────────────── */}
@@ -395,6 +568,7 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
                             <button
                               onClick={prevTrack}
                               className="p-1.5 rounded-full hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+                              aria-label="Previous track"
                             >
                               <SkipBack className="h-3.5 w-3.5" />
                             </button>
@@ -403,6 +577,7 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
                               onClick={toggleMusicPlay}
                               className="p-2 rounded-full transition-colors"
                               style={{ backgroundColor: cfg.ring }}
+                              aria-label={isAudioPlaying ? 'Pause music' : 'Play music'}
                             >
                               {isAudioPlaying
                                 ? <Pause className="h-3.5 w-3.5" style={{ color: cfg.color }} />
@@ -413,6 +588,7 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
                             <button
                               onClick={nextTrack}
                               className="p-1.5 rounded-full hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+                              aria-label="Next track"
                             >
                               <SkipForward className="h-3.5 w-3.5" />
                             </button>
@@ -423,6 +599,7 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
                             <button
                               onClick={() => setIsMuted((m) => !m)}
                               className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+                              aria-label={isMuted ? 'Unmute' : 'Mute'}
                             >
                               {isMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
                             </button>
@@ -436,6 +613,7 @@ export function PomodoroTimer({ onClose }: { onClose: () => void }) {
                                 setVolume(parseFloat(e.target.value));
                                 setIsMuted(false);
                               }}
+                              aria-label="Volume"
                               className="flex-1 h-1 accent-primary cursor-pointer"
                             />
                           </div>

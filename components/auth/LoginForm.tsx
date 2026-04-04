@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
@@ -37,12 +39,25 @@ export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  function validateEmail(value: string): boolean {
+    if (!EMAIL_REGEX.test(value)) {
+      setEmailError('Please enter a valid email address');
+      return false;
+    }
+    setEmailError('');
+    return true;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+
+    if (!validateEmail(email)) return;
+
     setLoading(true);
     try {
       await signIn(email, password);
@@ -114,11 +129,20 @@ export function LoginForm() {
             type="email"
             placeholder="you@example.com"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (emailError) validateEmail(e.target.value);
+            }}
+            onBlur={() => email && validateEmail(email)}
             required
             autoComplete="email"
             className="auth-input"
+            aria-invalid={!!emailError}
+            aria-describedby={emailError ? 'email-error' : undefined}
           />
+          {emailError && (
+            <p id="email-error" className="text-xs text-destructive">{emailError}</p>
+          )}
         </div>
 
         <div className="space-y-2">

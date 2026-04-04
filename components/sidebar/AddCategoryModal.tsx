@@ -17,6 +17,8 @@ const PRESET_COLORS = [
   '#f97316', '#14b8a6', '#8b5cf6', '#ef4444', '#06b6d4',
 ];
 
+const MAX_LABEL_LENGTH = 30;
+
 interface AddCategoryModalProps {
   open: boolean;
   onClose: () => void;
@@ -28,9 +30,22 @@ export function AddCategoryModal({ open, onClose, onAdd }: AddCategoryModalProps
   const [color, setColor] = useState(PRESET_COLORS[0]);
   const [error, setError] = useState('');
 
+  function handleLabelChange(value: string) {
+    setLabel(value);
+    if (value.length > MAX_LABEL_LENGTH) {
+      setError(`Category name must be ${MAX_LABEL_LENGTH} characters or less`);
+    } else if (error) {
+      setError('');
+    }
+  }
+
   function handleAdd() {
     if (!label.trim()) {
       setError('Please enter a category name');
+      return;
+    }
+    if (label.length > MAX_LABEL_LENGTH) {
+      setError(`Category name must be ${MAX_LABEL_LENGTH} characters or less`);
       return;
     }
     onAdd(label.trim(), color);
@@ -53,11 +68,16 @@ export function AddCategoryModal({ open, onClose, onAdd }: AddCategoryModalProps
             <Input
               id="cat-label"
               value={label}
-              onChange={(e) => setLabel(e.target.value)}
+              onChange={(e) => handleLabelChange(e.target.value)}
               placeholder="e.g. Reading"
+              maxLength={MAX_LABEL_LENGTH}
               onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+              aria-invalid={!!error}
+              aria-describedby={error ? 'cat-label-error' : undefined}
             />
-            {error && <p className="text-xs text-destructive">{error}</p>}
+            {error && (
+              <p id="cat-label-error" className="text-xs text-destructive">{error}</p>
+            )}
           </div>
 
           <div className="space-y-1.5">

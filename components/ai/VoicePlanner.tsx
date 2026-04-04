@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePlannerContext } from '@/context/PlannerContext';
-import { DAY_LABELS } from '@/types/planner';
+import { DAY_LABELS, DayOfWeek } from '@/types/planner';
 import { findAvailableSlot } from '@/lib/services/schedulingService';
 
 // Type definitions for SpeechRecognition API

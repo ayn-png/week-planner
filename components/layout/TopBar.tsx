@@ -65,6 +65,7 @@ export function TopBar({
         <motion.button
           whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.9 }}
           onClick={onToggleSidebar}
+          aria-label="Toggle sidebar"
           className="md:hidden p-2 rounded-lg hover:bg-muted transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
         >
           <Menu className="h-5 w-5" />
@@ -77,29 +78,29 @@ export function TopBar({
       {/* ── Left actions: undo/redo, snap ── */}
       <div className="hidden sm:flex items-center gap-1">
         <Tooltip>
-          <TooltipTrigger render={
+          <TooltipTrigger>
             <span>
-              <IconBtn variant="ghost" onClick={onUndo} disabled={!canUndo} data-tour="undo-btn">
+              <IconBtn variant="ghost" onClick={onUndo} disabled={!canUndo} data-tour="undo-btn" aria-label="Undo (Ctrl+Z)">
                 <Undo2 className="h-3.5 w-3.5" />
               </IconBtn>
             </span>
-          } />
+          </TooltipTrigger>
           <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
         </Tooltip>
 
         <Tooltip>
-          <TooltipTrigger render={
+          <TooltipTrigger>
             <span>
-              <IconBtn variant="ghost" onClick={onRedo} disabled={!canRedo}>
+              <IconBtn variant="ghost" onClick={onRedo} disabled={!canRedo} aria-label="Redo (Ctrl+Y)">
                 <Redo2 className="h-3.5 w-3.5" />
               </IconBtn>
             </span>
-          } />
+          </TooltipTrigger>
           <TooltipContent>Redo (Ctrl+Y)</TooltipContent>
         </Tooltip>
 
         <Tooltip>
-          <TooltipTrigger render={
+          <TooltipTrigger>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 variant="ghost"
@@ -107,24 +108,25 @@ export function TopBar({
                 onClick={() => setSnapMinutes(snapMinutes === 15 ? 30 : 15)}
                 className="h-7 gap-1 text-xs px-2"
                 data-tour="snap-btn"
+                aria-label={`Snap grid: currently ${snapMinutes} minutes. Click to switch to ${snapMinutes === 15 ? '30' : '15'} min`}
               >
                 <Grid2x2 className="h-3 w-3" />
                 {snapMinutes}m
               </Button>
             </motion.div>
-          } />
+          </TooltipTrigger>
           <TooltipContent>Snap to {snapMinutes === 15 ? '30' : '15'} min</TooltipContent>
         </Tooltip>
 
         {hasClipboard && (
           <Tooltip>
-            <TooltipTrigger render={
+            <TooltipTrigger>
               <span>
-                <IconBtn variant="ghost" onClick={onPaste}>
+                <IconBtn variant="ghost" onClick={onPaste} aria-label="Paste block (Ctrl+V)">
                   <Copy className="h-3.5 w-3.5" />
                 </IconBtn>
               </span>
-            } />
+            </TooltipTrigger>
             <TooltipContent>Paste block (Ctrl+V)</TooltipContent>
           </Tooltip>
         )}
@@ -133,13 +135,13 @@ export function TopBar({
       {/* ── Center: week nav ── */}
       <div className="flex flex-1 items-center justify-center gap-1" data-tour="week-nav">
         <Tooltip>
-          <TooltipTrigger render={
+          <TooltipTrigger>
             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <Button variant="ghost" size="icon" onClick={onPrevWeek} className="h-8 w-8 min-h-[44px] min-w-[44px] md:h-7 md:w-7 md:min-h-0 md:min-w-0">
+              <Button variant="ghost" size="icon" onClick={onPrevWeek} aria-label="Previous week" className="h-8 w-8 min-h-[44px] min-w-[44px] md:h-7 md:w-7 md:min-h-0 md:min-w-0">
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             </motion.div>
-          } />
+          </TooltipTrigger>
           <TooltipContent>Previous week</TooltipContent>
         </Tooltip>
 
@@ -157,13 +159,13 @@ export function TopBar({
         </AnimatePresence>
 
         <Tooltip>
-          <TooltipTrigger render={
+          <TooltipTrigger>
             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <Button variant="ghost" size="icon" onClick={onNextWeek} className="h-8 w-8 min-h-[44px] min-w-[44px] md:h-7 md:w-7 md:min-h-0 md:min-w-0">
+              <Button variant="ghost" size="icon" onClick={onNextWeek} aria-label="Next week" className="h-8 w-8 min-h-[44px] min-w-[44px] md:h-7 md:w-7 md:min-h-0 md:min-w-0">
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </motion.div>
-          } />
+          </TooltipTrigger>
           <TooltipContent>Next week</TooltipContent>
         </Tooltip>
 
@@ -178,13 +180,13 @@ export function TopBar({
         </Button>
 
         <Tooltip>
-          <TooltipTrigger render={
+          <TooltipTrigger>
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-              <Button variant="ghost" size="sm" onClick={onDuplicateWeek} className="hidden lg:flex h-7 text-xs px-2">
+              <Button variant="ghost" size="sm" onClick={onDuplicateWeek} aria-label="Duplicate this week to next week" className="hidden lg:flex h-7 text-xs px-2">
                 Copy Week →
               </Button>
             </motion.div>
-          } />
+          </TooltipTrigger>
           <TooltipContent>Duplicate this week to next week</TooltipContent>
         </Tooltip>
       </div>
@@ -193,7 +195,7 @@ export function TopBar({
       <div className="flex items-center gap-1">
         {/* AI Generator */}
         <Tooltip>
-          <TooltipTrigger render={
+          <TooltipTrigger>
             <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.9 }}>
               <Button
                 variant="ghost"
@@ -201,52 +203,54 @@ export function TopBar({
                 onClick={() => setAiGeneratorOpen(true)}
                 className="h-9 gap-1 text-xs px-2 text-primary hover:text-primary min-h-[44px] md:h-7 md:min-h-0"
                 data-tour="ai-btn"
+                aria-label="Open AI Week Generator"
               >
                 <Sparkles className="h-3.5 w-3.5" />
                 <span className="hidden sm:block">AI</span>
               </Button>
             </motion.div>
-          } />
+          </TooltipTrigger>
           <TooltipContent>AI Week Generator</TooltipContent>
         </Tooltip>
 
         {/* Analytics */}
         <Tooltip>
-          <TooltipTrigger render={
+          <TooltipTrigger>
             <span>
-              <IconBtn variant="ghost" onClick={() => setAnalyticsOpen(true)} data-tour="analytics-btn">
+              <IconBtn variant="ghost" onClick={() => setAnalyticsOpen(true)} data-tour="analytics-btn" aria-label="Open Analytics">
                 <BarChart2 className="h-3.5 w-3.5" />
               </IconBtn>
             </span>
-          } />
+          </TooltipTrigger>
           <TooltipContent>Analytics</TooltipContent>
         </Tooltip>
 
         {/* Focus Mode */}
         <Tooltip>
-          <TooltipTrigger render={
+          <TooltipTrigger>
             <span>
               <IconBtn
                 variant={focusMode ? 'secondary' : 'ghost'}
                 onClick={toggleFocusMode}
                 data-tour="focus-btn"
+                aria-label={focusMode ? 'Exit focus mode' : 'Enable focus mode'}
               >
                 <Focus className="h-3.5 w-3.5" />
               </IconBtn>
             </span>
-          } />
+          </TooltipTrigger>
           <TooltipContent>{focusMode ? 'Exit focus mode' : 'Focus mode'}</TooltipContent>
         </Tooltip>
 
         {/* Pomodoro Timer */}
         <Tooltip>
-          <TooltipTrigger render={
+          <TooltipTrigger>
             <span>
-              <IconBtn variant="ghost" onClick={togglePomodoro} data-tour="pomodoro-btn">
+              <IconBtn variant="ghost" onClick={togglePomodoro} data-tour="pomodoro-btn" aria-label="Open Pomodoro Timer">
                 <Timer className="h-3.5 w-3.5" />
               </IconBtn>
             </span>
-          } />
+          </TooltipTrigger>
           <TooltipContent>Pomodoro Timer</TooltipContent>
         </Tooltip>
 
@@ -270,13 +274,13 @@ export function TopBar({
         </span>
 
         <Tooltip>
-          <TooltipTrigger render={
+          <TooltipTrigger>
             <span>
-              <IconBtn variant="ghost" onClick={() => signOut()}>
+              <IconBtn variant="ghost" onClick={() => signOut()} aria-label="Sign out">
                 <LogOut className="h-3.5 w-3.5" />
               </IconBtn>
             </span>
-          } />
+          </TooltipTrigger>
           <TooltipContent>Sign out</TooltipContent>
         </Tooltip>
       </div>

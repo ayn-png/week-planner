@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
@@ -31,6 +33,12 @@ function GoogleIcon() {
   );
 }
 
+function validatePasswordStrength(pw: string): string {
+  if (pw.length < 8) return 'Password must be at least 8 characters';
+  if (!/\d/.test(pw)) return 'Password must contain at least one number';
+  return '';
+}
+
 export function SignupForm() {
   const { signUp, signInWithGoogle } = useAuth();
   const router = useRouter();
@@ -38,21 +46,45 @@ export function SignupForm() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmError, setConfirmError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  function validateEmail(value: string): boolean {
+    if (!EMAIL_REGEX.test(value)) {
+      setEmailError('Please enter a valid email address');
+      return false;
+    }
+    setEmailError('');
+    return true;
+  }
+
+  function validatePassword(value: string): boolean {
+    const msg = validatePasswordStrength(value);
+    setPasswordError(msg);
+    return msg === '';
+  }
+
+  function validateConfirm(confirmValue: string, passwordValue: string): boolean {
+    if (confirmValue !== passwordValue) {
+      setConfirmError('Passwords do not match');
+      return false;
+    }
+    setConfirmError('');
+    return true;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
 
-    if (password !== confirm) {
-      setError('Passwords do not match');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
+    const emailOk = validateEmail(email);
+    const passwordOk = validatePassword(password);
+    const confirmOk = validateConfirm(confirm, password);
+
+    if (!emailOk || !passwordOk || !confirmOk) return;
 
     setLoading(true);
     try {
@@ -125,11 +157,20 @@ export function SignupForm() {
             type="email"
             placeholder="you@example.com"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (emailError) validateEmail(e.target.value);
+            }}
+            onBlur={() => email && validateEmail(email)}
             required
             autoComplete="email"
             className="auth-input"
+            aria-invalid={!!emailError}
+            aria-describedby={emailError ? 'email-error' : undefined}
           />
+          {emailError && (
+            <p id="email-error" className="text-xs text-destructive">{emailError}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -139,11 +180,20 @@ export function SignupForm() {
             type="password"
             placeholder="••••••••"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (passwordError) validatePassword(e.target.value);
+            }}
+            onBlur={() => password && validatePassword(password)}
             required
             autoComplete="new-password"
             className="auth-input"
+            aria-invalid={!!passwordError}
+            aria-describedby={passwordError ? 'password-error' : undefined}
           />
+          {passwordError && (
+            <p id="password-error" className="text-xs text-destructive">{passwordError}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -153,11 +203,20 @@ export function SignupForm() {
             type="password"
             placeholder="••••••••"
             value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
+            onChange={(e) => {
+              setConfirm(e.target.value);
+              if (confirmError) validateConfirm(e.target.value, password);
+            }}
+            onBlur={() => confirm && validateConfirm(confirm, password)}
             required
             autoComplete="new-password"
             className="auth-input"
+            aria-invalid={!!confirmError}
+            aria-describedby={confirmError ? 'confirm-error' : undefined}
           />
+          {confirmError && (
+            <p id="confirm-error" className="text-xs text-destructive">{confirmError}</p>
+          )}
         </div>
 
         {error && (

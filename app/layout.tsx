@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AppProviders } from '@/components/providers/AppProviders';
+import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="antialiased bg-background text-foreground">
         <AppProviders>{children}</AppProviders>
+        <Toaster />
       </body>
     </html>
   );

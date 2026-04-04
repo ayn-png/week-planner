@@ -7,15 +7,28 @@ export function CurrentTimeIndicator() {
   const [minutes, setMinutes] = useState(currentTimeMinutes);
 
   useEffect(() => {
-    // Update every minute
-    const interval = setInterval(() => {
+    // Align to the next minute boundary, then tick every 60 seconds exactly
+    const now = new Date();
+    const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const timeout = setTimeout(() => {
       setMinutes(currentTimeMinutes());
-    }, 60_000);
-    return () => clearInterval(interval);
+      interval = setInterval(() => {
+        setMinutes(currentTimeMinutes());
+      }, 60_000);
+    }, msUntilNextMinute);
+
+    return () => {
+      clearTimeout(timeout);
+      if (interval !== null) clearInterval(interval);
+    };
   }, []);
 
   return (
     <div
+      aria-hidden="true"
       className="pointer-events-none absolute inset-x-0 z-20 flex items-center"
       style={{ top: minutes }}
     >

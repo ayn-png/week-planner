@@ -25,7 +25,18 @@ export function findAvailableSlot(
     if (endHour * 60 - currentTime >= durationMinutes) {
       return { day, startTime: currentTime, endTime: currentTime + durationMinutes };
     }
+
+    // Edge case: all blocks start at or after endHour — no usable window on this day
+    const allStartAfterEnd = dayBlocks.every((b) => b.startTime >= endHour * 60);
+    if (allStartAfterEnd && dayBlocks.length > 0) {
+      console.warn(
+        `findAvailableSlot: all blocks on ${day} start at or after endHour (${endHour}:00) — no slot available on this day`
+      );
+    }
   }
 
+  console.warn(
+    `findAvailableSlot: could not find a ${durationMinutes}-minute slot across preferred days`
+  );
   return null;
 }

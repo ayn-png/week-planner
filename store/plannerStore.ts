@@ -1,6 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { PlannerBlock } from '@/types/planner';
 import type { Goal, TaskGoalMapping } from '@/types/deepwork';
 
@@ -70,7 +71,9 @@ interface PlannerStore {
   setTaskMappings: (mappings: TaskGoalMapping[]) => void;
 }
 
-export const usePlannerStore = create<PlannerStore>((set, get) => ({
+export const usePlannerStore = create<PlannerStore>()(
+  persist(
+    (set, get) => ({
   // ─── Undo / Redo ───────────────────────────────────────────────────────────
   history: [],
   historyIndex: -1,
@@ -163,4 +166,17 @@ export const usePlannerStore = create<PlannerStore>((set, get) => ({
   setGoalsOpen: (val) => set({ goalsOpen: val }),
   setGoals: (goals) => set({ goals }),
   setTaskMappings: (mappings) => set({ taskMappings: mappings }),
-}));
+}),
+    {
+      name: 'week-planner-prefs',
+      storage: createJSONStorage(() => localStorage),
+      // Only persist user preference fields — never persist history, clipboard, or
+      // loading states which are session-specific and could cause stale UI on reload.
+      partialize: (state) => ({
+        snapMinutes: state.snapMinutes,
+        focusMode: state.focusMode,
+        pomodoroVisible: state.pomodoroVisible,
+      }),
+    }
+  )
+);

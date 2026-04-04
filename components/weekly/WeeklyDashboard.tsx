@@ -1,10 +1,11 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useWeeklyExtras } from '@/hooks/useWeeklyExtras';
 import { DayTodoCard } from './DayTodoCard';
 import { GoalsPanel } from './GoalsPanel';
 import { NotesPanel } from './NotesPanel';
-import type { DayOfWeek, DayTodo } from '@/types/planner';
+import type { DayOfWeek, DayTodo, WeeklyExtras, WeeklyGoal } from '@/types/planner';
 
 interface WeeklyDashboardProps {
   weekId: string;
@@ -25,11 +26,47 @@ const DAY_CARDS: {
   { key: 'Weekend', label: 'Sat & Sunday',   color: '#5c0a0a' },
 ];
 
+type SaveStatus = 'idle' | 'saving' | 'saved';
+
 export function WeeklyDashboard({ weekId, weekDays }: WeeklyDashboardProps) {
   const { extras, updateTodos, updateGoals, updateNotes } = useWeeklyExtras(weekId);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up timers when unmounting
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    };
+  }, []);
+
+  const triggerSaveIndicator = useCallback(() => {
+    setSaveStatus('saving');
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+
+    debounceRef.current = setTimeout(() => {
+      setSaveStatus('saved');
+      savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
+    }, 500);
+  }, []);
 
   function handleTodosChange(day: DayOfWeek | 'Weekend', todos: DayTodo[]) {
     updateTodos(day, todos);
+    triggerSaveIndicator();
+  }
+
+  function handleGoalsChange(goals: WeeklyGoal[]) {
+    updateGoals(goals);
+    triggerSaveIndicator();
+  }
+
+  function handleNotesChange(notes: WeeklyExtras['notes']) {
+    updateNotes(notes);
+    triggerSaveIndicator();
   }
 
   return (
@@ -42,6 +79,20 @@ export function WeeklyDashboard({ weekId, weekDays }: WeeklyDashboardProps) {
           {' – '}
           {weekDays[6]?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
         </span>
+
+        {/* Save status indicator */}
+        {saveStatus !== 'idle' && (
+          <span
+            className={`text-xs transition-opacity duration-300 ${
+              saveStatus === 'saving'
+                ? 'text-muted-foreground'
+                : 'text-green-600 dark:text-green-400'
+            }`}
+            aria-live="polite"
+          >
+            {saveStatus === 'saving' ? 'Saving...' : 'Saved'}
+          </span>
+        )}
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
@@ -64,11 +115,11 @@ export function WeeklyDashboard({ weekId, weekDays }: WeeklyDashboardProps) {
         <div className="lg:w-72 flex-shrink-0 space-y-4">
           <GoalsPanel
             goals={extras.goals}
-            onChange={updateGoals}
+            onChange={handleGoalsChange}
           />
           <NotesPanel
             notes={extras.notes}
-            onChange={updateNotes}
+            onChange={handleNotesChange}
           />
         </div>
       </div>

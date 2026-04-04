@@ -22,7 +22,12 @@ async function seedDefaultCategories(userId: string): Promise<void> {
   for (const category of DEFAULT_CATEGORIES) {
     batch.set(doc(db, 'users', userId, 'categories', category.id), category);
   }
-  await batch.commit();
+  try {
+    await batch.commit();
+  } catch (err) {
+    // Non-fatal: user is created successfully; categories can be seeded later
+    console.error('seedDefaultCategories: failed to write default categories:', err);
+  }
 }
 
 export async function signIn(email: string, password: string): Promise<void> {

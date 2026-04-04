@@ -69,8 +69,8 @@ export function DayColumn({ dayIndex, blocks, isToday, onBlockClick, onBlockCopy
       ))}
 
       {/* Snap grid lines on hover */}
-      {isOver && snapMinutes === 15 && hours.map((h) =>
-        snapOffsets.filter(o => o !== 30).map((offset) => (
+      {isOver && (snapMinutes === 15 || snapMinutes === 30) && hours.map((h) =>
+        snapOffsets.filter(o => snapMinutes === 15 ? o !== 30 : true).map((offset) => (
           <div
             key={`snap-${h}-${offset}`}
             className="absolute inset-x-0 border-t border-primary/20"

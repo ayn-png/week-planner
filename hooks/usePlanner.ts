@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from './useAuth';
 import { usePlannerContext } from '@/context/PlannerContext';
 import { usePlannerStore } from '@/store/plannerStore';
@@ -30,7 +31,10 @@ export function usePlanner(weekId: string) {
         dispatch({ type: 'SET_BLOCKS', blocks: [] });
         return;
       }
-      if (plan.lastModified === localLastModifiedRef.current) return;
+      // Local wins: if our last local write is newer than the incoming snapshot,
+      // the remote update reflects an older state — skip it to prevent overwriting
+      // unsaved local edits (multi-tab race condition guard).
+      if (plan.lastModified <= localLastModifiedRef.current) return;
       dispatch({ type: 'SET_BLOCKS', blocks: plan.blocks });
     });
 
@@ -45,8 +49,14 @@ export function usePlanner(weekId: string) {
         dispatch({ type: 'SET_SAVING', saving: true });
         const lastModified = Date.now();
         localLastModifiedRef.current = lastModified;
-        await saveWeekPlan(user.uid, { weekId, blocks, lastModified });
-        dispatch({ type: 'SET_SAVING', saving: false });
+        try {
+          await saveWeekPlan(user.uid, { weekId, blocks, lastModified });
+        } catch (err) {
+          console.error('[usePlanner] save failed:', err);
+          toast.error('Failed to save. Changes may be lost.');
+        } finally {
+          dispatch({ type: 'SET_SAVING', saving: false });
+        }
       }, 600);
     },
     [user, weekId, dispatch]
@@ -220,11 +230,28 @@ export function usePlanner(weekId: string) {
 
   // ─── Bulk Add (AI) ───────────────────────────────────────────────────────
 
-  function addBulkBlocks(newBlocks: PlannerBlock[]): void {
-    pushHistory(state.blocks);
-    const allBlocks = [...state.blocks, ...newBlocks];
+  async function addBulkBlocks(newBlocks: PlannerBlock[]): Promise<void> {
+    if (!user) return;
+    const previousBlocks = state.blocks;
+    pushHistory(previousBlocks);
+    const allBlocks = [...previousBlocks, ...newBlocks];
     dispatch({ type: 'ADD_BLOCKS', blocks: newBlocks });
-    scheduleSave(allBlocks);
+
+    // Attempt an immediate save so we can revert on failure, rather than
+    // relying on the debounced scheduleSave which has no revert path.
+    const lastModified = Date.now();
+    localLastModifiedRef.current = lastModified;
+    dispatch({ type: 'SET_SAVING', saving: true });
+    try {
+      await saveWeekPlan(user.uid, { weekId, blocks: allBlocks, lastModified });
+    } catch (err) {
+      console.error('[usePlanner] addBulkBlocks save failed:', err);
+      // Revert optimistic dispatch
+      dispatch({ type: 'SET_BLOCKS', blocks: previousBlocks });
+      toast.error('Failed to add blocks');
+    } finally {
+      dispatch({ type: 'SET_SAVING', saving: false });
+    }
   }
 
   return {

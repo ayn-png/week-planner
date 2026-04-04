@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from './useAuth';
 import { usePlannerContext } from '@/context/PlannerContext';
 import { subscribeToCategories, saveCategory, deleteCategory } from '@/lib/firebase/firestore';
@@ -27,14 +28,34 @@ export function useCategories() {
       color,
       isDefault: false,
     };
+    // Optimistic update
     dispatch({ type: 'ADD_CATEGORY', category: newCategory });
-    await saveCategory(user.uid, newCategory);
+    try {
+      await saveCategory(user.uid, newCategory);
+    } catch (err) {
+      console.error('[useCategories] addCategory failed:', err);
+      // Revert optimistic update
+      dispatch({ type: 'DELETE_CATEGORY', id: newCategory.id });
+      toast.error('Failed to add category');
+    }
   }
 
   async function removeCategory(categoryId: string) {
     if (!user) return;
+    // Capture the category before removing so we can restore it on failure
+    const categoryToRemove = state.categories.find((c) => c.id === categoryId);
+    // Optimistic update
     dispatch({ type: 'DELETE_CATEGORY', id: categoryId });
-    await deleteCategory(user.uid, categoryId);
+    try {
+      await deleteCategory(user.uid, categoryId);
+    } catch (err) {
+      console.error('[useCategories] removeCategory failed:', err);
+      // Revert: re-add the category that was removed
+      if (categoryToRemove) {
+        dispatch({ type: 'ADD_CATEGORY', category: categoryToRemove });
+      }
+      toast.error('Failed to remove category');
+    }
   }
 
   return {

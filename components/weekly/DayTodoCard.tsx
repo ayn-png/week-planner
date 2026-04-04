@@ -64,19 +64,22 @@ export function DayTodoCard({ dayLabel, bgColor, todos, onChange }: DayTodoCardP
               transition={{ duration: 0.15 }}
               className="flex items-start gap-2 group"
             >
-              <input
-                type="checkbox"
-                checked={todo.completed}
-                onChange={() => toggleTodo(todo.id)}
-                className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 cursor-pointer rounded-sm accent-white"
-              />
-              <span
-                className={`text-xs flex-1 leading-snug break-words ${
-                  todo.completed ? 'line-through opacity-40 text-muted-foreground' : 'text-foreground'
-                }`}
-              >
-                {todo.text}
-              </span>
+              <label className="flex items-start gap-2 flex-1 min-w-0 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={todo.completed}
+                  onChange={() => toggleTodo(todo.id)}
+                  className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 cursor-pointer rounded-sm accent-white"
+                  aria-label={`${todo.completed ? 'Mark incomplete' : 'Mark complete'}: ${todo.text}`}
+                />
+                <span
+                  className={`text-xs flex-1 leading-snug break-words ${
+                    todo.completed ? 'line-through opacity-40 text-muted-foreground' : 'text-foreground'
+                  }`}
+                >
+                  {todo.text}
+                </span>
+              </label>
               <button
                 onClick={() => deleteTodo(todo.id)}
                 className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-muted-foreground flex-shrink-0 mt-0.5"

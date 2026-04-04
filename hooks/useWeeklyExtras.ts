@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from './useAuth';
 import { subscribeToWeeklyExtras, saveWeeklyExtras } from '@/lib/firebase/firestore';
 import type { WeeklyExtras, DayTodo, WeeklyGoal, DayOfWeek } from '@/types/planner';
@@ -18,6 +19,8 @@ export function useWeeklyExtras(weekId: string) {
   const { user } = useAuth();
   const [extras, setExtras] = useState<WeeklyExtras>(() => emptyExtras(weekId));
   const saveTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  // Guard flag: true while a save promise is in-flight
+  const saveInProgressRef = useRef<boolean>(false);
 
   useEffect(() => {
     setExtras(emptyExtras(weekId));
@@ -33,9 +36,21 @@ export function useWeeklyExtras(weekId: string) {
 
   function scheduleSave(data: WeeklyExtras) {
     if (!user) return;
+    // Debounce: cancel any previously scheduled save
     clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      saveWeeklyExtras(user.uid, data).catch(() => {});
+      // If a save is already in-flight, skip this tick — the next debounce
+      // cycle will pick up the latest state once the current one settles.
+      if (saveInProgressRef.current) return;
+      saveInProgressRef.current = true;
+      saveWeeklyExtras(user.uid, data)
+        .catch((err) => {
+          console.error('[useWeeklyExtras] save failed:', err);
+          toast.error('Failed to save notes/todos');
+        })
+        .finally(() => {
+          saveInProgressRef.current = false;
+        });
     }, 500);
   }
 

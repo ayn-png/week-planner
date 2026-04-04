@@ -24,12 +24,37 @@ Rules:
 - Keep blocks between 30 minutes and 4 hours each
 - Ensure a balanced, healthy schedule`;
 
+const AI_TIMEOUT_MS = 30_000;
+
 export async function POST(req: NextRequest) {
   if (!process.env.OPENROUTER_API_KEY) {
     return NextResponse.json(
       { error: 'AI features require an OPENROUTER_API_KEY environment variable.' },
       { status: 503 }
     );
+  }
+
+  // Parse body — return 400 on malformed JSON instead of silently using {}
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const { prompt, categories } = body as { prompt?: unknown; categories?: unknown };
+
+  // Validate prompt
+  if (typeof prompt !== 'string' || prompt.trim() === '') {
+    return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
+  }
+  if (prompt.length > 2000) {
+    return NextResponse.json({ error: 'Prompt too long' }, { status: 400 });
+  }
+
+  // Validate categories
+  if (categories !== undefined && !Array.isArray(categories)) {
+    return NextResponse.json({ error: 'categories must be an array' }, { status: 400 });
   }
 
   const client = new OpenAI({
@@ -41,31 +66,36 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  const body = await req.json().catch(() => ({}));
-  const { prompt, categories } = body as { prompt: string; categories: string[] };
-
-  if (!prompt?.trim()) {
-    return NextResponse.json({ error: 'Prompt is required.' }, { status: 400 });
-  }
-
-  const userMessage = `Generate a weekly schedule for someone who wants to: ${prompt}.
-${categories?.length ? `Available categories: ${categories.join(', ')}.` : ''}
+  const userMessage = `Generate a weekly schedule for someone who wants to: ${prompt.trim()}.
+${Array.isArray(categories) && categories.length > 0 ? `Available categories: ${(categories as string[]).join(', ')}.` : ''}
 Return ONLY the JSON array, no other text.`;
 
+  // 30-second AbortController timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+
   try {
-    const message = await client.chat.completions.create({
-      model: 'anthropic/claude-3.5-haiku',
-      max_tokens: 2048,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userMessage },
-      ],
-    });
+    const message = await client.chat.completions.create(
+      {
+        model: 'anthropic/claude-3.5-haiku',
+        max_tokens: 2048,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userMessage },
+        ],
+      },
+      { signal: controller.signal }
+    );
 
     const text = message.choices[0]?.message?.content ?? '';
     return NextResponse.json({ schedule: text });
   } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      return NextResponse.json({ error: 'AI request timed out' }, { status: 504 });
+    }
     const msg = err instanceof Error ? err.message : 'AI generation failed';
     return NextResponse.json({ error: msg }, { status: 500 });
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

@@ -20,8 +20,8 @@ export async function createGoal(userId: string, goal: Goal) {
 
 export async function updateGoalService(userId: string, goal: Goal) {
   const dRef = doc(getGoalsRef(userId), goal.id);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await updateDoc(dRef, { ...goal } as any);
+  const update: Partial<Goal> = { ...goal };
+  await updateDoc(dRef, update);
 }
 
 export async function deleteGoalService(userId: string, goalId: string) {

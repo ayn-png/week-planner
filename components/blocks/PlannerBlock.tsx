@@ -10,6 +10,7 @@ import { usePlannerContext } from '@/context/PlannerContext';
 import { CheckCircle2, Circle } from 'lucide-react';
 import { currentTimeMinutes } from '@/lib/dateHelpers';
 import { ResizeHandle } from './ResizeHandle';
+import { toast } from 'sonner';
 
 interface PlannerBlockProps {
   block: PlannerBlockType;
@@ -19,7 +20,7 @@ interface PlannerBlockProps {
 }
 
 export function PlannerBlock({ block, isConflicting = false, onClick, onCopy }: PlannerBlockProps) {
-  const { focusMode } = usePlannerStore();
+  const { focusMode, setClipboard } = usePlannerStore();
   const { dispatch } = usePlannerContext();
   const duration = block.endTime - block.startTime;
   const now = currentTimeMinutes();
@@ -56,6 +57,8 @@ export function PlannerBlock({ block, isConflicting = false, onClick, onCopy }: 
         transition={{ duration: 0.15, ease: 'easeOut' }}
         whileHover={!isFocusBlurred ? { scale: 1.01 } : {}}
         layout
+        tabIndex={0}
+        role="button"
         className="rounded-md overflow-visible cursor-grab active:cursor-grabbing group select-none"
         {...listeners}
         {...attributes}
@@ -66,6 +69,17 @@ export function PlannerBlock({ block, isConflicting = false, onClick, onCopy }: 
         onContextMenu={(e) => {
           e.preventDefault();
           onCopy(block);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (!isFocusBlurred) onClick(block);
+          }
+          if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+            e.preventDefault();
+            setClipboard(block);
+            toast.success('Block copied');
+          }
         }}
       >
         {/* Main block body */}
@@ -126,10 +140,10 @@ export function PlannerBlock({ block, isConflicting = false, onClick, onCopy }: 
             )}
           </div>
 
-          {/* Right-click hint on hover */}
+          {/* Copy hint on hover */}
           {duration >= 45 && (
             <div className="hidden group-hover:flex items-center justify-end px-1.5 pb-0.5">
-              <span className="text-[9px] text-muted-foreground opacity-60">⌃C copy</span>
+              <span className="text-[9px] text-muted-foreground opacity-60">Ctrl+C copy</span>
             </div>
           )}
         </div>

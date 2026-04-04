@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { PlannerBlock, Category } from '@/types/planner';
 import { usePlannerStore } from '@/store/plannerStore';
 import { Target, Zap } from 'lucide-react';
 import { minutesToTime, timeToMinutes, isPastSlot } from '@/lib/dateHelpers';
+import { wouldOverlap } from '@/lib/overlapDetection';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +30,7 @@ interface BlockEditModalProps {
   block: PlannerBlock | null;
   categories: Category[];
   weekDays?: Date[];
+  blocks?: PlannerBlock[];
   onSave: (block: PlannerBlock) => { success: boolean; error?: string };
   onDelete: (id: string) => void;
   onClose: () => void;
@@ -39,6 +42,7 @@ export function BlockEditModal({
   block,
   categories,
   weekDays,
+  blocks = [],
   onSave,
   onDelete,
   onClose,
@@ -90,6 +94,12 @@ export function BlockEditModal({
       return;
     }
 
+    // Overlap check — exclude the block being edited
+    if (wouldOverlap({ day: block.day, startTime, endTime }, blocks, block.id)) {
+      setError('This block overlaps with an existing block');
+      return;
+    }
+
     const selectedCategory = categories.find((c) => c.id === categoryId);
     const updatedBlock: PlannerBlock = {
       ...block,
@@ -104,12 +114,16 @@ export function BlockEditModal({
       energyLevel: energyLevel === 'none' ? undefined : energyLevel as 'High' | 'Medium' | 'Low',
     };
 
-    const result = onSave(updatedBlock);
-    if (!result.success) {
-      setError(result.error ?? 'Could not save block');
-      return;
+    try {
+      const result = onSave(updatedBlock);
+      if (!result.success) {
+        setError(result.error ?? 'Could not save block');
+        return;
+      }
+      onClose();
+    } catch {
+      toast.error('Failed to update block');
     }
-    onClose();
   }
 
   function handleDelete() {
@@ -133,10 +147,16 @@ export function BlockEditModal({
 
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label htmlFor="block-title">Title</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="block-title">Title</Label>
+              <span className={`text-[11px] tabular-nums ${title.length >= 54 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                {title.length}/60
+              </span>
+            </div>
             <Input
               id="block-title"
               value={title}
+              maxLength={60}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Block title"
             />
@@ -248,6 +268,7 @@ export function BlockEditModal({
             <button
               id="focus-mode-toggle"
               type="button"
+              aria-label={block.status === 'done' ? 'Mark as incomplete' : 'Mark as complete'}
               onClick={() => setIsFocus(!isFocus)}
               className={`relative h-5 w-9 rounded-full transition-colors flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring ${isFocus ? 'bg-primary' : 'bg-muted'}`}
             >
