@@ -37,7 +37,8 @@ export function VoicePlanner() {
   const [transcript, setTranscript] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [proposedSlot, setProposedSlot] = useState<{ day: DayOfWeek; startTime: number; endTime: number } | null>(null);
-  const recognitionRef = useRef<InstanceType<typeof SpeechRecognition> | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
 
   // Set default category when categories load
   useEffect(() => {
@@ -57,7 +58,8 @@ export function VoicePlanner() {
 
     rec.onstart = () => setPanelState('listening');
 
-    rec.onresult = (event: SpeechRecognitionEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (event: any) => {
       const text = event.results[0][0].transcript.trim();
       setTranscript(text);
 
@@ -70,7 +72,8 @@ export function VoicePlanner() {
       setPanelState('confirming');
     };
 
-    rec.onerror = (event: SpeechRecognitionErrorEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onerror = (event: any) => {
       setPanelState('idle');
       const msg =
         event.error === 'not-allowed'

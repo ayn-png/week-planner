@@ -56,8 +56,6 @@ export function PlannerBlock({ block, isConflicting = false, onClick, onCopy }: 
       transition={{ duration: 0.15, ease: 'easeOut' }}
       whileHover={!isFocusBlurred ? { scale: 1.01 } : {}}
       layout
-      tabIndex={0}
-      role="button"
       className="rounded-md overflow-visible cursor-grab active:cursor-grabbing group select-none"
       {...listeners}
       {...attributes}

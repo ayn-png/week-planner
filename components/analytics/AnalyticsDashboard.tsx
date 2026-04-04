@@ -236,7 +236,7 @@ export function AnalyticsDashboard({ open, onClose, blocks, categories, weekRang
                           ))}
                         </Pie>
                         <RechartsTooltip 
-                          formatter={(value: number) => [`${value}m`, 'Time']}
+                          formatter={(value) => [`${value ?? 0}m`, 'Time']}
                           contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
                         />
                       </PieChart>
