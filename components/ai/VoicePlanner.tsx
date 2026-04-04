@@ -12,7 +12,7 @@ import { findAvailableSlot } from '@/lib/services/schedulingService';
 import { v4 as uuidv4 } from 'uuid';
 
 // Resolve SpeechRecognition across browsers
-type SpeechRecognitionCtor = new () => SpeechRecognitionAPI;
+type SpeechRecognitionCtor = new () => SpeechRecognition;
 const SpeechRecognitionAPI =
   typeof window !== 'undefined'
     ? (window as Window & { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor }).SpeechRecognition ||
