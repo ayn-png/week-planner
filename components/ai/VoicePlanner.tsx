@@ -175,7 +175,7 @@ export function VoicePlanner() {
               {panelState === 'idle' && (
                 <div className="space-y-3">
                   <p className="text-xs text-muted-foreground text-center">
-                    Press the mic and say what you want to add — e.g. <em>"Morning workout"</em> or <em>"Team meeting"</em>
+                    Press the mic and say what you want to add — e.g. <em>&quot;Morning workout&quot;</em> or <em>&quot;Team meeting&quot;</em>
                   </p>
 
                   {/* Category selector */}

@@ -24,7 +24,7 @@ export default function OfflinePage() {
 
         {/* Text */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight">You're offline</h1>
+          <h1 className="text-2xl font-bold tracking-tight">You&apos;re offline</h1>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Week Planner needs a connection to sync your data. Your previously loaded
             plan may still be available — check below.

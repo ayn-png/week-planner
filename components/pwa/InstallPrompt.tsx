@@ -153,7 +153,7 @@ export function InstallPrompt() {
                       <Share className="h-3.5 w-3.5 text-blue-400" />
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Tap the <span className="font-medium text-foreground">Share</span> button in Safari's toolbar
+                      Tap the <span className="font-medium text-foreground">Share</span> button in Safari&apos;s toolbar
                     </p>
                   </li>
                   <li className="flex items-center gap-3">

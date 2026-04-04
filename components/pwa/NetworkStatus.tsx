@@ -51,7 +51,7 @@ export function NetworkStatus() {
             ) : (
               <>
                 <WifiOff className="h-3.5 w-3.5" />
-                You're offline — changes will sync when reconnected
+                You&apos;re offline — changes will sync when reconnected
               </>
             )}
           </div>
