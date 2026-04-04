@@ -1,32 +1,49 @@
 {
   "name": "Week Planner",
   "short_name": "Planner",
-  "description": "Drag-and-drop weekly time planner with AI scheduling",
+  "description": "Drag-and-drop weekly time planner with AI scheduling, goals, and analytics",
   "start_url": "/planner",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0f1117",
-  "theme_color": "#0f1117",
+  "theme_color": "#6366f1",
   "categories": ["productivity", "utilities"],
+  "lang": "en-US",
   "icons": [
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
     {
       "name": "This Week",
+      "short_name": "This Week",
       "url": "/planner",
-      "description": "Open current week planner"
+      "description": "Open current week planner",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
-  ]
+  ],
+  "prefer_related_applications": false
 }

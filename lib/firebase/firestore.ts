@@ -19,23 +19,29 @@ export function subscribeToWeekPlan(
   callback: (plan: WeeklyPlan | null) => void
 ): Unsubscribe {
   const ref = doc(db, 'users', userId, 'weeklyPlans', weekId);
-  return onSnapshot(ref, (snap) => {
-    if (!snap.exists()) {
+  return onSnapshot(
+    ref,
+    (snap) => {
+      if (!snap.exists()) {
+        callback(null);
+        return;
+      }
+      const data = snap.data();
+      if (
+        data &&
+        typeof data.weekId === 'string' &&
+        Array.isArray(data.blocks)
+      ) {
+        callback(data as WeeklyPlan);
+      } else {
+        callback(null);
+      }
+    },
+    (err) => {
+      console.error(`[Firestore] weeklyPlans listener error for ${userId}/${weekId}:`, err.code, err.message);
       callback(null);
-      return;
     }
-    const data = snap.data();
-    // Safe cast: verify required fields are present before asserting type
-    if (
-      data &&
-      typeof data.weekId === 'string' &&
-      Array.isArray(data.blocks)
-    ) {
-      callback(data as WeeklyPlan);
-    } else {
-      callback(null);
-    }
-  });
+  );
 }
 
 export async function saveWeekPlan(userId: string, plan: WeeklyPlan): Promise<void> {
@@ -57,7 +63,7 @@ export function subscribeToCategories(
       callback(categories);
     },
     (err) => {
-      throw new Error(`Failed to fetch categories for user ${userId}: ${err.message}`);
+      console.error(`[Firestore] categories listener error for ${userId}:`, err.code, err.message);
     }
   );
 }
@@ -102,13 +108,20 @@ export function subscribeToWeeklyExtras(
   callback: (extras: WeeklyExtras | null) => void
 ): Unsubscribe {
   const ref = doc(db, 'users', userId, 'weeklyExtras', weekId);
-  return onSnapshot(ref, (snap) => {
-    if (snap.exists()) {
-      callback(snap.data() as WeeklyExtras);
-    } else {
+  return onSnapshot(
+    ref,
+    (snap) => {
+      if (snap.exists()) {
+        callback(snap.data() as WeeklyExtras);
+      } else {
+        callback(null);
+      }
+    },
+    (err) => {
+      console.error(`[Firestore] weeklyExtras listener error for ${userId}/${weekId}:`, err.code, err.message);
       callback(null);
     }
-  });
+  );
 }
 
 export async function saveWeeklyExtras(userId: string, extras: WeeklyExtras): Promise<void> {

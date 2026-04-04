@@ -18,6 +18,7 @@ import { usePlannerStore } from '@/store/plannerStore';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { TopBar } from '@/components/layout/TopBar';
+import type { AppView } from '@/components/layout/TopBar';
 import { Sidebar } from '@/components/sidebar/Sidebar';
 import { CalendarGrid } from '@/components/calendar/CalendarGrid';
 import { DragOverlayContent } from '@/components/dnd/DragOverlayContent';
@@ -63,6 +64,7 @@ export default function PlannerPage() {
   useOnboarding();
   useActivityTracker();
 
+  const [activeView, setActiveView] = useState<AppView>('calendar');
   const [activeDragData, setActiveDragData] = useState<DragData | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<PlannerBlock | null>(null);
   const [dropError, setDropError] = useState<string | null>(null);
@@ -283,6 +285,8 @@ export default function PlannerPage() {
             canUndo={canUndo()}
             canRedo={canRedo()}
             hasClipboard={!!clipboard}
+            activeView={activeView}
+            onViewChange={setActiveView}
             onPrevWeek={goToPrevWeek}
             onNextWeek={goToNextWeek}
             onCurrentWeek={goToCurrentWeek}
@@ -313,51 +317,70 @@ export default function PlannerPage() {
               onClose={() => setSidebarOpen(false)}
             />
 
-            {/* Main content area — scrollable so dashboard appears below calendar */}
-            <div className="relative flex flex-1 flex-col overflow-y-auto scrollbar-thin">
-              <div className="px-6 pt-4">
-                <ReschedulePrompt />
-              </div>
-              <SmartSuggestions blocks={blocks} categories={state.categories} onScheduleFocus={handleScheduleFocus} />
+            {/* Main content — switches between Calendar and Dashboard views */}
+            <AnimatePresence mode="wait">
+              {activeView === 'calendar' ? (
+                <motion.div
+                  key="calendar"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="relative flex flex-1 flex-col overflow-hidden"
+                >
+                  <div className="px-6 pt-2">
+                    <ReschedulePrompt />
+                  </div>
+                  <SmartSuggestions blocks={blocks} categories={state.categories} onScheduleFocus={handleScheduleFocus} />
 
-              {/* Calendar — fixed viewport height so it fills the screen */}
-              <div className="flex-shrink-0" style={{ height: 'calc(100vh - 120px)' }}>
-                <CalendarGrid
-                  weekDays={weekDays}
-                  blocks={blocks}
-                  onBlockClick={setSelectedBlock}
-                  onBlockCopy={handleCopyBlock}
-                  dayColumnRefs={dayColumnRefs}
-                  visibleDayIndices={visibleDayIndices}
-                />
-              </div>
+                  {/* Calendar takes all remaining height */}
+                  <div className="flex-1 min-h-0">
+                    <CalendarGrid
+                      weekDays={weekDays}
+                      blocks={blocks}
+                      onBlockClick={setSelectedBlock}
+                      onBlockCopy={handleCopyBlock}
+                      dayColumnRefs={dayColumnRefs}
+                      visibleDayIndices={visibleDayIndices}
+                    />
+                  </div>
 
-              {/* Weekly Dashboard — scroll down to see it */}
-              <WeeklyDashboard weekId={weekId} weekDays={weekDays} />
+                  {/* Mobile swipe hint */}
+                  <div className="flex md:hidden items-center justify-center gap-3 py-2 border-t border-border/40 bg-background/80 backdrop-blur-sm flex-shrink-0">
+                    <span className="text-xs text-muted-foreground">Swipe to navigate weeks</span>
+                  </div>
 
-              {/* Mobile day nav hint */}
-              <div className="flex md:hidden items-center justify-center gap-3 py-2 border-t border-border/40 bg-background/80 backdrop-blur-sm">
-                <span className="text-xs text-muted-foreground">Swipe to navigate weeks</span>
-              </div>
-
-              {/* Error / feedback toasts */}
-              <AnimatePresence>
-                {(dropError || toast || duplicateSuccess || pasteDay !== null) && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 8 }}
-                    className={`fixed bottom-12 left-1/2 -translate-x-1/2 rounded-lg px-4 py-2 text-sm shadow-lg z-50 ${
-                      dropError
-                        ? 'bg-destructive text-destructive-foreground'
-                        : 'bg-foreground text-background'
-                    }`}
-                  >
-                    {dropError || toast || (duplicateSuccess ? '✓ Week duplicated to next week' : '')}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                  {/* Error / feedback toasts */}
+                  <AnimatePresence>
+                    {(dropError || toast || duplicateSuccess || pasteDay !== null) && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 8 }}
+                        className={`fixed bottom-12 left-1/2 -translate-x-1/2 rounded-lg px-4 py-2 text-sm shadow-lg z-50 ${
+                          dropError
+                            ? 'bg-destructive text-destructive-foreground'
+                            : 'bg-foreground text-background'
+                        }`}
+                      >
+                        {dropError || toast || (duplicateSuccess ? '✓ Week duplicated to next week' : '')}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="dashboard"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="flex-1 overflow-y-auto"
+                >
+                  <WeeklyDashboard weekId={weekId} weekDays={weekDays} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 

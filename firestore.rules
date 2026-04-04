@@ -16,8 +16,7 @@ service cloud.firestore {
         && request.auth.uid == userId
         && request.resource.data.label is string
         && request.resource.data.color is string
-        && request.resource.data.color.matches('^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$')
-        && request.resource.data.emoji is string;
+        && request.resource.data.color.matches('^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$');
     }
 
     match /users/{userId}/metadata/{docId} {

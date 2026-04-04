@@ -8,8 +8,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Calendar, LogOut, Loader2,
   Undo2, Redo2, Focus, Sparkles, BarChart2, Copy, Grid2x2,
-  Menu, Timer,
+  Menu, Timer, LayoutDashboard,
 } from 'lucide-react';
+
+export type AppView = 'calendar' | 'dashboard';
 
 interface TopBarProps {
   weekRangeLabel: string;
@@ -18,6 +20,8 @@ interface TopBarProps {
   canUndo: boolean;
   canRedo: boolean;
   hasClipboard: boolean;
+  activeView: AppView;
+  onViewChange: (view: AppView) => void;
   onPrevWeek: () => void;
   onNextWeek: () => void;
   onCurrentWeek: () => void;
@@ -43,6 +47,7 @@ const IconBtn = ({ children, ...props }: React.ComponentProps<typeof Button>) =>
 export function TopBar({
   weekRangeLabel, isCurrentWeek, isSaving,
   canUndo, canRedo, hasClipboard,
+  activeView, onViewChange,
   onPrevWeek, onNextWeek, onCurrentWeek,
   onUndo, onRedo, onDuplicateWeek, onPaste,
   onToggleSidebar,
@@ -61,7 +66,6 @@ export function TopBar({
 
       {/* ── Brand + hamburger (mobile) ── */}
       <div className="flex items-center gap-2 min-w-[40px] md:min-w-[120px]">
-        {/* Mobile hamburger */}
         <motion.button
           whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.9 }}
           onClick={onToggleSidebar}
@@ -70,74 +74,104 @@ export function TopBar({
         >
           <Menu className="h-5 w-5" />
         </motion.button>
-
         <Calendar className="h-4 w-4 text-primary flex-shrink-0 hidden md:block" />
         <span className="text-sm font-semibold hidden sm:block">Week Planner</span>
       </div>
 
-      {/* ── Left actions: undo/redo, snap ── */}
-      <div className="hidden sm:flex items-center gap-1">
-        <Tooltip>
-          <TooltipTrigger>
-            <span>
-              <IconBtn variant="ghost" onClick={onUndo} disabled={!canUndo} data-tour="undo-btn" aria-label="Undo (Ctrl+Z)">
-                <Undo2 className="h-3.5 w-3.5" />
-              </IconBtn>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
-        </Tooltip>
+      {/* ── View toggle: Calendar | Dashboard ── */}
+      <div className="hidden sm:flex items-center gap-0.5 bg-muted/60 rounded-lg p-0.5 border border-border/30">
+        <button
+          onClick={() => onViewChange('calendar')}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+            activeView === 'calendar'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+          aria-label="Calendar view"
+        >
+          <Calendar className="h-3 w-3" />
+          Calendar
+        </button>
+        <button
+          onClick={() => onViewChange('dashboard')}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+            activeView === 'dashboard'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+          aria-label="Dashboard view"
+        >
+          <LayoutDashboard className="h-3 w-3" />
+          Dashboard
+        </button>
+      </div>
 
-        <Tooltip>
-          <TooltipTrigger>
-            <span>
-              <IconBtn variant="ghost" onClick={onRedo} disabled={!canRedo} aria-label="Redo (Ctrl+Y)">
-                <Redo2 className="h-3.5 w-3.5" />
-              </IconBtn>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>Redo (Ctrl+Y)</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSnapMinutes(snapMinutes === 15 ? 30 : 15)}
-                className="h-7 gap-1 text-xs px-2"
-                data-tour="snap-btn"
-                aria-label={`Snap grid: currently ${snapMinutes} minutes. Click to switch to ${snapMinutes === 15 ? '30' : '15'} min`}
-              >
-                <Grid2x2 className="h-3 w-3" />
-                {snapMinutes}m
-              </Button>
-            </motion.div>
-          </TooltipTrigger>
-          <TooltipContent>Snap to {snapMinutes === 15 ? '30' : '15'} min</TooltipContent>
-        </Tooltip>
-
-        {hasClipboard && (
+      {/* ── Left actions: undo/redo, snap (calendar-only) ── */}
+      {activeView === 'calendar' && (
+        <div className="hidden sm:flex items-center gap-1">
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger render={<span />}>
               <span>
-                <IconBtn variant="ghost" onClick={onPaste} aria-label="Paste block (Ctrl+V)">
-                  <Copy className="h-3.5 w-3.5" />
+                <IconBtn variant="ghost" onClick={onUndo} disabled={!canUndo} data-tour="undo-btn" aria-label="Undo (Ctrl+Z)">
+                  <Undo2 className="h-3.5 w-3.5" />
                 </IconBtn>
               </span>
             </TooltipTrigger>
-            <TooltipContent>Paste block (Ctrl+V)</TooltipContent>
+            <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
           </Tooltip>
-        )}
-      </div>
+
+          <Tooltip>
+            <TooltipTrigger render={<span />}>
+              <span>
+                <IconBtn variant="ghost" onClick={onRedo} disabled={!canRedo} aria-label="Redo (Ctrl+Y)">
+                  <Redo2 className="h-3.5 w-3.5" />
+                </IconBtn>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Redo (Ctrl+Y)</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger render={<span />}>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSnapMinutes(snapMinutes === 15 ? 30 : 15)}
+                  className="h-7 gap-1 text-xs px-2"
+                  data-tour="snap-btn"
+                  aria-label={`Snap grid: ${snapMinutes} min. Click to switch`}
+                >
+                  <Grid2x2 className="h-3 w-3" />
+                  {snapMinutes}m
+                </Button>
+              </motion.div>
+            </TooltipTrigger>
+            <TooltipContent>Snap to {snapMinutes === 15 ? '30' : '15'} min</TooltipContent>
+          </Tooltip>
+
+          {hasClipboard && (
+            <Tooltip>
+              <TooltipTrigger render={<span />}>
+                <span>
+                  <IconBtn variant="ghost" onClick={onPaste} aria-label="Paste block (Ctrl+V)">
+                    <Copy className="h-3.5 w-3.5" />
+                  </IconBtn>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Paste block (Ctrl+V)</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      )}
 
       {/* ── Center: week nav ── */}
       <div className="flex flex-1 items-center justify-center gap-1" data-tour="week-nav">
         <Tooltip>
-          <TooltipTrigger>
+          <TooltipTrigger render={<span />}>
             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <Button variant="ghost" size="icon" onClick={onPrevWeek} aria-label="Previous week" className="h-8 w-8 min-h-[44px] min-w-[44px] md:h-7 md:w-7 md:min-h-0 md:min-w-0">
+              <Button variant="ghost" size="icon" onClick={onPrevWeek} aria-label="Previous week"
+                className="h-8 w-8 min-h-[44px] min-w-[44px] md:h-7 md:w-7 md:min-h-0 md:min-w-0">
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             </motion.div>
@@ -159,9 +193,10 @@ export function TopBar({
         </AnimatePresence>
 
         <Tooltip>
-          <TooltipTrigger>
+          <TooltipTrigger render={<span />}>
             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <Button variant="ghost" size="icon" onClick={onNextWeek} aria-label="Next week" className="h-8 w-8 min-h-[44px] min-w-[44px] md:h-7 md:w-7 md:min-h-0 md:min-w-0">
+              <Button variant="ghost" size="icon" onClick={onNextWeek} aria-label="Next week"
+                className="h-8 w-8 min-h-[44px] min-w-[44px] md:h-7 md:w-7 md:min-h-0 md:min-w-0">
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </motion.div>
@@ -179,23 +214,27 @@ export function TopBar({
           Today
         </Button>
 
-        <Tooltip>
-          <TooltipTrigger>
-            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-              <Button variant="ghost" size="sm" onClick={onDuplicateWeek} aria-label="Duplicate this week to next week" className="hidden lg:flex h-7 text-xs px-2">
-                Copy Week →
-              </Button>
-            </motion.div>
-          </TooltipTrigger>
-          <TooltipContent>Duplicate this week to next week</TooltipContent>
-        </Tooltip>
+        {activeView === 'calendar' && (
+          <Tooltip>
+            <TooltipTrigger render={<span />}>
+              <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="ghost" size="sm" onClick={onDuplicateWeek}
+                  aria-label="Duplicate this week to next week"
+                  className="hidden lg:flex h-7 text-xs px-2">
+                  Copy Week →
+                </Button>
+              </motion.div>
+            </TooltipTrigger>
+            <TooltipContent>Duplicate this week to next week</TooltipContent>
+          </Tooltip>
+        )}
       </div>
 
       {/* ── Right actions ── */}
       <div className="flex items-center gap-1">
         {/* AI Generator */}
         <Tooltip>
-          <TooltipTrigger>
+          <TooltipTrigger render={<span />}>
             <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.9 }}>
               <Button
                 variant="ghost"
@@ -215,7 +254,7 @@ export function TopBar({
 
         {/* Analytics */}
         <Tooltip>
-          <TooltipTrigger>
+          <TooltipTrigger render={<span />}>
             <span>
               <IconBtn variant="ghost" onClick={() => setAnalyticsOpen(true)} data-tour="analytics-btn" aria-label="Open Analytics">
                 <BarChart2 className="h-3.5 w-3.5" />
@@ -227,7 +266,7 @@ export function TopBar({
 
         {/* Focus Mode */}
         <Tooltip>
-          <TooltipTrigger>
+          <TooltipTrigger render={<span />}>
             <span>
               <IconBtn
                 variant={focusMode ? 'secondary' : 'ghost'}
@@ -244,7 +283,7 @@ export function TopBar({
 
         {/* Pomodoro Timer */}
         <Tooltip>
-          <TooltipTrigger>
+          <TooltipTrigger render={<span />}>
             <span>
               <IconBtn variant="ghost" onClick={togglePomodoro} data-tour="pomodoro-btn" aria-label="Open Pomodoro Timer">
                 <Timer className="h-3.5 w-3.5" />
@@ -274,7 +313,7 @@ export function TopBar({
         </span>
 
         <Tooltip>
-          <TooltipTrigger>
+          <TooltipTrigger render={<span />}>
             <span>
               <IconBtn variant="ghost" onClick={() => signOut()} aria-label="Sign out">
                 <LogOut className="h-3.5 w-3.5" />
