@@ -1,12 +1,91 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Download, Share, Plus } from 'lucide-react';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+function isIOS() {
+  if (typeof navigator === 'undefined') return false;
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
+function isStandalone() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+}
+
+function InstallHint() {
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showIOS, setShowIOS] = useState(false);
+  const [installed, setInstalled] = useState(false);
+
+  useEffect(() => {
+    if (isStandalone()) { setInstalled(true); return; }
+    if (isIOS()) { setShowIOS(true); return; }
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => setInstalled(true));
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    await deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') setInstalled(true);
+    setDeferredPrompt(null);
+  };
+
+  if (installed) return null;
+
+  if (showIOS) {
+    return (
+      <div className="rounded-xl border border-border/40 bg-muted/30 p-3 space-y-2">
+        <p className="text-xs font-medium text-center text-muted-foreground">Install app on your device</p>
+        <div className="flex items-center gap-2">
+          <div className="h-6 w-6 rounded-md bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+            <Share className="h-3 w-3 text-blue-400" />
+          </div>
+          <p className="text-xs text-muted-foreground">Tap <span className="font-medium text-foreground">Share</span> in Safari</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-6 w-6 rounded-md bg-green-500/10 flex items-center justify-center flex-shrink-0">
+            <Plus className="h-3 w-3 text-green-400" />
+          </div>
+          <p className="text-xs text-muted-foreground">Tap <span className="font-medium text-foreground">Add to Home Screen</span></p>
+        </div>
+      </div>
+    );
+  }
+
+  if (deferredPrompt) {
+    return (
+      <button
+        onClick={handleInstall}
+        className="w-full flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 py-2.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
+      >
+        <Download className="h-3.5 w-3.5" />
+        Install App — Add to Home Screen
+      </button>
+    );
+  }
+
+  return null;
+}
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -174,6 +253,8 @@ export function LoginForm() {
           Sign up
         </Link>
       </p>
+
+      <InstallHint />
     </div>
   );
 }
