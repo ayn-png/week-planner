@@ -87,7 +87,7 @@ export default function PlannerPage() {
   // ─── Sensors ───────────────────────────────────────────────────────────────
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 12 } })
   );
 
   // ─── Drag handlers ─────────────────────────────────────────────────────────
@@ -357,6 +357,12 @@ export default function PlannerPage() {
                     isMobile={isMobile}
                     onBack={goBack}
                     onForward={goForward}
+                    canUndo={canUndo()}
+                    canRedo={canRedo()}
+                    isCurrentWeek={isCurrentWeek}
+                    onUndo={handleUndo}
+                    onRedo={handleRedo}
+                    onToday={goToCurrentWeek}
                   />
 
                   {/* Calendar takes all remaining height */}

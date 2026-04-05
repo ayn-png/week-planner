@@ -40,6 +40,7 @@ export function PlannerBlock({ block, isConflicting = false, onClick, onCopy }: 
     right: 3,
     zIndex: isDragging ? 0 : isCurrentBlock ? 20 : 10,
     transform: CSS.Translate.toString(transform),
+    touchAction: 'none' as const, // Required for dnd-kit TouchSensor on mobile
   };
 
   return (

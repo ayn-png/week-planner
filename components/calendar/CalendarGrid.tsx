@@ -49,7 +49,7 @@ export function CalendarGrid({
         animate="visible"
         key={weekDays[0]?.toISOString()}
       >
-        <div className="w-14 flex-shrink-0" />
+        <div className="w-10 sm:w-14 flex-shrink-0" />
         {visibleDays.map((date, idx) => {
           const day = DAY_LABELS[visibleIndices[idx]];
           const today = isToday(date);

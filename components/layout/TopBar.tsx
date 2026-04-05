@@ -257,7 +257,7 @@ export function TopBar({
         {/* Analytics */}
         <Tooltip>
           <TooltipTrigger render={<span />}>
-            <span>
+            <span className="hidden sm:inline-flex">
               <IconBtn variant="ghost" onClick={() => setAnalyticsOpen(true)} data-tour="analytics-btn" aria-label="Open Analytics">
                 <BarChart2 className="h-3.5 w-3.5" />
               </IconBtn>
@@ -269,7 +269,7 @@ export function TopBar({
         {/* Focus Mode */}
         <Tooltip>
           <TooltipTrigger render={<span />}>
-            <span>
+            <span className="hidden sm:inline-flex">
               <IconBtn
                 variant={focusMode ? 'secondary' : 'ghost'}
                 onClick={toggleFocusMode}
@@ -286,7 +286,7 @@ export function TopBar({
         {/* Pomodoro Timer */}
         <Tooltip>
           <TooltipTrigger render={<span />}>
-            <span>
+            <span className="hidden sm:inline-flex">
               <IconBtn variant="ghost" onClick={togglePomodoro} data-tour="pomodoro-btn" aria-label="Open Pomodoro Timer">
                 <Timer className="h-3.5 w-3.5" />
               </IconBtn>
