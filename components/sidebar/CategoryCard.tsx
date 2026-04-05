@@ -7,10 +7,11 @@ import type { Category, DragData } from '@/types/planner';
 interface CategoryCardProps {
   category: Category;
   onDelete?: (id: string) => void;
+  onTap?: () => void;
   index?: number;
 }
 
-export function CategoryCard({ category, onDelete, index = 0 }: CategoryCardProps) {
+export function CategoryCard({ category, onDelete, onTap, index = 0 }: CategoryCardProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `category-${category.id}`,
     data: { type: 'CATEGORY', category } satisfies DragData,
@@ -45,6 +46,18 @@ export function CategoryCard({ category, onDelete, index = 0 }: CategoryCardProp
           title="Delete category"
         >
           ✕
+        </button>
+      )}
+
+      {onTap && (
+        <button
+          className="ml-2 flex md:hidden items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium flex-shrink-0"
+          onClick={(e) => { e.stopPropagation(); onTap(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          title="Add block at current time"
+          aria-label={`Add ${category.label} block at current time`}
+        >
+          +
         </button>
       )}
     </motion.div>

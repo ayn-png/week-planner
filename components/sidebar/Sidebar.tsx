@@ -6,6 +6,7 @@ import { X, Target } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
 import { usePlannerStore } from '@/store/plannerStore';
 import { CategoryList } from './CategoryList';
+import type { Category } from '@/types/planner';
 import { AddCategoryModal } from './AddCategoryModal';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -13,9 +14,10 @@ import { Separator } from '@/components/ui/separator';
 interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
+  onCategoryTap?: (category: Category) => void;
 }
 
-export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
+export function Sidebar({ isOpen = true, onClose, onCategoryTap }: SidebarProps) {
   const { categories, addCategory, removeCategory } = useCategories();
   const { setGoalsOpen } = usePlannerStore();
   const [showModal, setShowModal] = useState(false);
@@ -39,10 +41,11 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         </div>
 
         <p className="mb-3 text-xs text-muted-foreground">
-          Drag a category onto the calendar
+          <span className="hidden md:block">Drag a category onto the calendar</span>
+          <span className="md:hidden">Tap + to add a block at current time</span>
         </p>
 
-        <CategoryList categories={categories} onDelete={removeCategory} />
+        <CategoryList categories={categories} onDelete={removeCategory} onTap={(cat) => onCategoryTap?.(cat)} />
 
         <Separator className="my-4" />
 

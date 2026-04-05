@@ -2,12 +2,13 @@ import {
   doc,
   setDoc,
   getDoc,
+  getDocs,
   onSnapshot,
   collection,
   deleteDoc,
   type Unsubscribe,
 } from 'firebase/firestore';
-import type { WeeklyExtras } from '@/types/planner';
+import type { WeeklyExtras, FcmToken } from '@/types/planner';
 import { db } from './config';
 import type { WeeklyPlan, Category } from '@/types/planner';
 
@@ -127,4 +128,30 @@ export function subscribeToWeeklyExtras(
 export async function saveWeeklyExtras(userId: string, extras: WeeklyExtras): Promise<void> {
   const ref = doc(db, 'users', userId, 'weeklyExtras', extras.weekId);
   await setDoc(ref, extras);
+}
+
+// ─── FCM Tokens ────────────────────────────────────────────────────────────────
+
+export async function saveFcmToken(userId: string, token: string, device: string): Promise<void> {
+  // Use a hash of the token as the document ID to deduplicate
+  const tokenId = btoa(token).slice(0, 32).replace(/[^a-zA-Z0-9]/g, '_');
+  const ref = doc(db, 'users', userId, 'fcmTokens', tokenId);
+  await setDoc(ref, {
+    token,
+    device,
+    createdAt: Date.now(),
+    lastUsed: Date.now(),
+  } satisfies FcmToken, { merge: true });
+}
+
+export async function removeFcmToken(userId: string, token: string): Promise<void> {
+  const tokenId = btoa(token).slice(0, 32).replace(/[^a-zA-Z0-9]/g, '_');
+  const ref = doc(db, 'users', userId, 'fcmTokens', tokenId);
+  await deleteDoc(ref);
+}
+
+export async function getFcmTokens(userId: string): Promise<FcmToken[]> {
+  const ref = collection(db, 'users', userId, 'fcmTokens');
+  const snap = await getDocs(ref);
+  return snap.docs.map((d) => d.data() as FcmToken);
 }

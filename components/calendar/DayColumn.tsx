@@ -53,7 +53,7 @@ export function DayColumn({ dayIndex, blocks, isToday, onBlockClick, onBlockCopy
       className={`relative border-l border-border/40 transition-colors calendar-day-col ${isMobileVisible ? 'flex-1' : 'flex-1'}`}
       style={{
         height: 1440,
-        minWidth: 80,
+        minWidth: 56,
         backgroundColor: isOver ? 'hsl(var(--primary) / 0.04)' : undefined,
       }}
       data-tour={dayIndex === 0 ? 'calendar-col' : undefined}

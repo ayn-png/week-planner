@@ -7,13 +7,14 @@ import { CategoryCard } from './CategoryCard';
 interface CategoryListProps {
   categories: Category[];
   onDelete: (id: string) => void;
+  onTap?: (category: Category) => void;
 }
 
 const containerVariants = {
   visible: { transition: { staggerChildren: 0.05 } },
 };
 
-export function CategoryList({ categories, onDelete }: CategoryListProps) {
+export function CategoryList({ categories, onDelete, onTap }: CategoryListProps) {
   const sorted = [...categories].sort((a, b) => {
     if (a.isDefault && !b.isDefault) return -1;
     if (!a.isDefault && b.isDefault) return 1;
@@ -29,7 +30,7 @@ export function CategoryList({ categories, onDelete }: CategoryListProps) {
       data-tour="categories"
     >
       {sorted.map((cat, i) => (
-        <CategoryCard key={cat.id} category={cat} onDelete={onDelete} index={i} />
+        <CategoryCard key={cat.id} category={cat} onDelete={onDelete} onTap={onTap ? () => onTap(cat) : undefined} index={i} />
       ))}
     </motion.div>
   );

@@ -17,6 +17,8 @@ import { usePlannerContext } from '@/context/PlannerContext';
 import { usePlannerStore } from '@/store/plannerStore';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useMobileCalendarDays } from '@/hooks/useMobileCalendarDays';
 import { TopBar } from '@/components/layout/TopBar';
 import type { AppView } from '@/components/layout/TopBar';
 import { Sidebar } from '@/components/sidebar/Sidebar';
@@ -33,7 +35,9 @@ import { PomodoroTimer } from '@/components/pomodoro/PomodoroTimer';
 import { ReschedulePrompt } from '@/components/planner/ReschedulePrompt';
 import { WebsiteBlockerSuggest } from '@/components/pomodoro/WebsiteBlockerSuggest';
 import { WeeklyDashboard } from '@/components/weekly/WeeklyDashboard';
-import type { DragData, PlannerBlock, DayOfWeek } from '@/types/planner';
+import { BottomNav } from '@/components/mobile/BottomNav';
+import { MobileCalendarNav } from '@/components/mobile/MobileCalendarNav';
+import type { DragData, PlannerBlock, DayOfWeek, Category } from '@/types/planner';
 import { DAY_LABELS } from '@/types/planner';
 import { snapToSlot } from '@/lib/dateHelpers';
 import { v4 as uuidv4 } from 'uuid';
@@ -58,11 +62,15 @@ export default function PlannerPage() {
     analyticsOpen, setAnalyticsOpen,
     focusMode,
     pomodoroVisible, togglePomodoro,
+    setGoalsOpen,
   } = usePlannerStore();
 
   // Trigger onboarding tour for new users
   useOnboarding();
   useActivityTracker();
+  useNotifications();
+
+  const { isMobile, visibleDayIndices, canGoBack, canGoForward, goBack, goForward } = useMobileCalendarDays();
 
   const [activeView, setActiveView] = useState<AppView>('calendar');
   const [activeDragData, setActiveDragData] = useState<DragData | null>(null);
@@ -267,7 +275,15 @@ export default function PlannerPage() {
     };
   }, [goToNextWeek, goToPrevWeek]);
 
-  const visibleDayIndices = Array.from({ length: 7 }, (_, i) => i);
+  // ─── Sidebar quick-tap: add block at current time ──────────────────────────
+  const handleCategoryTap = useCallback((category: Category) => {
+    const todayIndex = (new Date().getDay() + 6) % 7;
+    const dayLabel = DAY_LABELS[todayIndex] as DayOfWeek;
+    const now = new Date();
+    const snappedTime = snapToSlot(now.getHours() * 60 + now.getMinutes(), snapMinutes);
+    addBlock(category, dayLabel, snappedTime);
+    setSidebarOpen(false);
+  }, [addBlock, snapMinutes]);
 
   return (
     <>
@@ -315,6 +331,7 @@ export default function PlannerPage() {
             <Sidebar
               isOpen={sidebarOpen}
               onClose={() => setSidebarOpen(false)}
+              onCategoryTap={handleCategoryTap}
             />
 
             {/* Main content — switches between Calendar and Dashboard views */}
@@ -332,9 +349,18 @@ export default function PlannerPage() {
                     <ReschedulePrompt />
                   </div>
                   <SmartSuggestions blocks={blocks} categories={state.categories} onScheduleFocus={handleScheduleFocus} />
+                  <MobileCalendarNav
+                    weekDays={weekDays}
+                    visibleDayIndices={visibleDayIndices}
+                    canGoBack={canGoBack}
+                    canGoForward={canGoForward}
+                    isMobile={isMobile}
+                    onBack={goBack}
+                    onForward={goForward}
+                  />
 
                   {/* Calendar takes all remaining height */}
-                  <div className="flex-1 min-h-0 flex flex-col">
+                  <div className="flex-1 min-h-0 flex flex-col pb-14 md:pb-0">
                     <CalendarGrid
                       weekDays={weekDays}
                       blocks={blocks}
@@ -440,10 +466,17 @@ export default function PlannerPage() {
       {/* Goals Dashboard */}
       <GoalsDashboard />
 
-      {/* Voice Planner FAB */}
-      <div className="fixed bottom-6 right-6 z-50">
+      {/* Voice Planner FAB — lifted on mobile to clear BottomNav */}
+      <div className="fixed bottom-20 right-6 z-50 md:bottom-6">
         <VoicePlanner />
       </div>
+
+      {/* Bottom navigation — mobile only */}
+      <BottomNav
+        activeView={activeView}
+        onViewChange={setActiveView}
+        onGoals={() => setGoalsOpen(true)}
+      />
     </>
   );
 }

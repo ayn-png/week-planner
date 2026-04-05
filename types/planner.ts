@@ -90,3 +90,12 @@ export interface WeeklyStats {
   productivityScore: number; // 0-100
   suggestions: string[];
 }
+
+// ─── FCM Push Notification Types ─────────────────────────────────────────────
+
+export interface FcmToken {
+  token: string;
+  device: string;    // 'web' | userAgent string
+  createdAt: number;
+  lastUsed: number;
+}

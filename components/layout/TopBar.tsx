@@ -10,6 +10,7 @@ import {
   Undo2, Redo2, Focus, Sparkles, BarChart2, Copy, Grid2x2,
   Menu, Timer, LayoutDashboard,
 } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export type AppView = 'calendar' | 'dashboard';
 
@@ -186,7 +187,7 @@ export function TopBar({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 6 }}
             transition={{ duration: 0.18 }}
-            className="min-w-[130px] text-center text-xs sm:text-sm font-medium select-none"
+            className="min-w-[90px] sm:min-w-[130px] text-center text-xs sm:text-sm font-medium select-none"
           >
             {weekRangeLabel}
           </motion.span>
@@ -292,6 +293,9 @@ export function TopBar({
           </TooltipTrigger>
           <TooltipContent>Pomodoro Timer</TooltipContent>
         </Tooltip>
+
+        {/* Notification Bell */}
+        <NotificationBell />
 
         {/* Saving indicator */}
         <AnimatePresence>

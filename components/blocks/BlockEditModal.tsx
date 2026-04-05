@@ -135,7 +135,11 @@ export function BlockEditModal({
 
   return (
     <Dialog open={!!block} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-sm:!fixed max-sm:!inset-0 max-sm:!rounded-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!max-w-full max-sm:overflow-y-auto">
+        {/* Mobile drag handle */}
+        <div className="flex sm:hidden justify-center pt-2 pb-1 -mt-2">
+          <div className="h-1 w-10 rounded-full bg-border" />
+        </div>
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -220,7 +224,7 @@ export function BlockEditModal({
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="start-time">Start Time</Label>
               <Input
