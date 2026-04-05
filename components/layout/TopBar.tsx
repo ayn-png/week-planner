@@ -11,6 +11,7 @@ import {
   Menu, Timer, LayoutDashboard,
 } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { InstallButton } from '@/components/pwa/InstallButton';
 
 export type AppView = 'calendar' | 'dashboard';
 
@@ -293,6 +294,9 @@ export function TopBar({
           </TooltipTrigger>
           <TooltipContent>Pomodoro Timer</TooltipContent>
         </Tooltip>
+
+        {/* Install App */}
+        <InstallButton />
 
         {/* Notification Bell */}
         <NotificationBell />
